@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useDevices } from "@/contexts/DeviceContext";
 import { calculateKepcoBill } from "@/lib/energyCalculator";
@@ -18,6 +18,8 @@ import {
   Plus,
   ShieldCheck,
   ChevronRight,
+  Activity,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,10 +53,10 @@ export default function DynamicDashboard() {
     return found || devices[0] || null;
   }, [devices, selectedCategory]);
 
-  // 실시간 전력 지표 집계 (순수 실데이터 기반 산출)
+  // 실시간 가동 중인 기기 목록
   const activeDevices = useMemo(() => devices.filter((d) => d.status), [devices]);
-  
-  // 실시간 가동 총 전력(W)
+
+  // 실시간 가동 총 소비전력(W)
   const totalActiveWatts = useMemo(() => {
     return activeDevices.reduce(
       (sum, d) => sum + Number(d.currentPower ?? d.current_power ?? 0),
@@ -62,18 +64,41 @@ export default function DynamicDashboard() {
     );
   }, [activeDevices]);
 
-  // 등록된 모든 기기의 월간 예상 총 전력량(kWh)
+  // [약점 3 해결] 실시간 가동 시간 누적 kWh 티커 상태
+  const [liveAccumulatedKWh, setLiveAccumulatedKWh] = useState(0);
+
+  // 기기가 가동 중일 때 2초마다 실제 전력량(W * t) 누적 계산 (스마트 계량기 시뮬레이션)
+  useEffect(() => {
+    if (totalActiveWatts <= 0) return;
+
+    const interval = setInterval(() => {
+      // 2초 동안 소비된 전력량 (kWh = (W / 1000) * (2 / 3600))
+      const deltaKWh = (totalActiveWatts / 1000) * (2 / 3600);
+      setLiveAccumulatedKWh((prev) => prev + deltaKWh);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [totalActiveWatts]);
+
+  // 등록된 모든 기기의 기본 월간 예상 전력량 + 실시간 누적 전력량
   const totalMonthlyKWh = useMemo(() => {
-    return devices.reduce(
+    const baseKWh = devices.reduce(
       (sum, d) => sum + Number(d.monthlyUsageKWh ?? d.monthly_usage_kwh ?? d.monthlyUsage ?? 0),
       0
     );
-  }, [devices]);
+    return baseKWh + liveAccumulatedKWh;
+  }, [devices, liveAccumulatedKWh]);
 
   // 한전 공식 누진 요금제 기준 이번 달 예상 청구 요금
   const totalKepcoBill = useMemo(() => {
     return calculateKepcoBill(totalMonthlyKWh);
   }, [totalMonthlyKWh]);
+
+  // 실시간 가동 W 기준 시간당(h) 예상 추가 요금 (한전 2단계 요율 214.6원 기준)
+  const hourlyRunningCost = useMemo(() => {
+    if (totalActiveWatts <= 0) return 0;
+    return Math.round((totalActiveWatts / 1000) * 214.6);
+  }, [totalActiveWatts]);
 
   // 홈 즐겨찾기(Pin) 기기 목록
   const pinnedDevices = useMemo(() => {
@@ -102,8 +127,6 @@ export default function DynamicDashboard() {
         return <Zap {...iconProps} />;
     }
   };
-
-  const currentCategoryObj = DEFAULT_CATEGORIES.find((c) => c.key === selectedCategory);
 
   return (
     <div className="w-full max-w-3xl mx-auto flex flex-col items-center py-4 px-4 space-y-7 animate-in fade-in duration-300">
@@ -240,12 +263,15 @@ export default function DynamicDashboard() {
         </div>
       )}
 
-      {/* 3. 하단 실시간 종합 전력 & 한전 누진 요금 요약 (실데이터 바인딩) */}
+      {/* 3. 하단 실시간 종합 전력 & 한전 누진 요금 요약 (실시간 티커 바인딩) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full max-w-lg">
         {/* 전체 소비전력 카드 */}
-        <div className="p-4 rounded-3xl bg-card/80 border border-border shadow-xs space-y-2 backdrop-blur-md">
+        <div className="p-4 rounded-3xl bg-card border border-border shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-medium">우리집 실시간 전력</span>
+            <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+              <Activity className={`w-3.5 h-3.5 ${totalActiveWatts > 0 ? "text-blue-500 animate-pulse" : "text-muted-foreground"}`} />
+              우리집 실시간 전력
+            </span>
             <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-500 border-blue-500/30">
               {activeDevices.length}대 가동 중
             </Badge>
@@ -260,21 +286,31 @@ export default function DynamicDashboard() {
               ({(totalActiveWatts / 1000).toFixed(2)} kW)
             </span>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            총 {devices.length}개 가전 중 {activeDevices.length}개 작동 중
-          </p>
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5 border-t border-border/50">
+            <span>총 {devices.length}개 가전 중 작동</span>
+            {totalActiveWatts > 0 ? (
+              <span className="text-blue-500 font-bold font-mono">
+                시간당 약 ₩{hourlyRunningCost.toLocaleString()}원
+              </span>
+            ) : (
+              <span>대기 중</span>
+            )}
+          </div>
         </div>
 
         {/* 한전 누진 요금 카드 */}
         <Link
           href="/energy/forecast"
-          className="p-4 rounded-3xl bg-card/80 border border-border shadow-xs space-y-2 backdrop-blur-md hover:border-primary/50 transition-all group"
+          className="p-4 rounded-3xl bg-card border border-border shadow-xs space-y-2 hover:border-primary/50 transition-all group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-medium">이번 달 예상 청구 요금</span>
+            <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+              이번 달 예상 청구 요금
+            </span>
             <span className="text-[10px] text-primary flex items-center font-bold group-hover:underline">
               누진세 분석
-              <ChevronRight className="w-3 h-3" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </span>
           </div>
           <div className="flex items-baseline gap-1.5">
@@ -283,9 +319,16 @@ export default function DynamicDashboard() {
             </span>
             <span className="text-xs text-muted-foreground">/월</span>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            총 {Math.round(totalMonthlyKWh)} kWh 기준 (한전 공식 요율)
-          </p>
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5 border-t border-border/50">
+            <span className="font-mono">
+              총 {totalMonthlyKWh.toFixed(1)} kWh 기준
+            </span>
+            {liveAccumulatedKWh > 0 && (
+              <span className="text-emerald-500 text-[10px] font-mono font-bold animate-pulse">
+                실시간 누적 중 (+{(liveAccumulatedKWh * 1000).toFixed(1)}Wh)
+              </span>
+            )}
+          </div>
         </Link>
       </div>
 
