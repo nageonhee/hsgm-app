@@ -28,7 +28,7 @@ export default function AddDevicePage() {
   const router = useRouter();
   const { addDevice } = useDevices();
 
-  const [step, setStep] = useState("select_scan"); // "select_scan" | "scanning" | "final_confirm"
+  const [step, setStep] = useState("select_scan"); // "select_scan" | "scanning" | "human_in_the_loop" | "final_confirm"
   const [capturedImage, setCapturedImage] = useState(null);
   const [scanProgressText, setScanProgressText] = useState("AI 비전 모델 초기화 중...");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,6 +37,10 @@ export default function AddDevicePage() {
   // AI 분석 결과 및 수동 편집 상태
   const [analyzedDevice, setAnalyzedDevice] = useState(null);
   const [isManualMode, setIsManualMode] = useState(false);
+  
+  // 대화형 선택지 (Human-in-the-loop) 상태
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [resolvedSpecs, setResolvedSpecs] = useState({});
 
   const videoRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -217,7 +221,14 @@ export default function AddDevicePage() {
 
       setAnalyzedDevice(data);
       setIsManualMode(false);
-      setStep("final_confirm");
+      
+      if (data.needsMoreInfo && data.needsMoreInfo.length > 0) {
+        setCurrentQuestionIndex(0);
+        setResolvedSpecs({});
+        setStep("human_in_the_loop");
+      } else {
+        setStep("final_confirm");
+      }
     } catch (err) {
       clearTimeout(timer);
       console.error("Scan Error:", err);
@@ -375,7 +386,7 @@ export default function AddDevicePage() {
             </div>
 
             {/* 카메라 뷰파인더 */}
-            <div className="relative rounded-3xl overflow-hidden bg-black aspect-[4/3] sm:aspect-video border border-border shadow-2xl flex flex-col items-center justify-center">
+            <div className="relative rounded-3xl overflow-hidden bg-black aspect-[3/4] sm:aspect-[4/3] w-full border border-border shadow-2xl flex flex-col items-center justify-center">
               <video
                 ref={videoRef}
                 autoPlay
@@ -459,6 +470,67 @@ export default function AddDevicePage() {
             <div className="flex items-center gap-2 text-xs text-muted-foreground bg-accent/50 px-4 py-2 rounded-full border border-border">
               <Sparkles className="w-4 h-4 text-primary" />
               사진 속 텍스트(OCR)와 실제 시각적 특징을 실시간 분석하고 있습니다
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 2.5: 대화형 선택지 (Human-in-the-loop) ── */}
+        {step === "human_in_the_loop" && analyzedDevice?.needsMoreInfo && (
+          <div className="space-y-6 pt-4 animate-in slide-in-from-bottom-6 duration-500">
+            <div className="text-center space-y-2 pb-2">
+              <Badge className="bg-primary/20 text-primary border-primary/30 text-[11px]">AI 외형 분석 완료</Badge>
+              <h2 className="text-2xl font-extrabold text-foreground tracking-tight">추가 정보가 필요해요</h2>
+              <p className="text-sm text-muted-foreground">
+                외형만으로는 알 수 없는 상세 스펙을 선택해주세요. ({currentQuestionIndex + 1}/{analyzedDevice.needsMoreInfo.length})
+              </p>
+            </div>
+
+            <div className="bg-card border border-border p-6 rounded-3xl shadow-xl space-y-6">
+              <h3 className="text-lg font-bold text-foreground text-center">
+                {analyzedDevice.needsMoreInfo[currentQuestionIndex].question}
+              </h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {analyzedDevice.needsMoreInfo[currentQuestionIndex].options.map((opt, idx) => (
+                  <Button
+                    key={idx}
+                    variant="outline"
+                    className="h-14 justify-start text-left font-semibold text-sm px-5 border-border hover:border-primary hover:bg-primary/10 transition-all shadow-sm"
+                    onClick={() => {
+                      const currentQ = analyzedDevice.needsMoreInfo[currentQuestionIndex];
+                      const newResolved = { ...resolvedSpecs, [currentQ.key]: opt };
+                      setResolvedSpecs(newResolved);
+                      
+                      if (currentQuestionIndex + 1 < analyzedDevice.needsMoreInfo.length) {
+                        setCurrentQuestionIndex(currentQuestionIndex + 1);
+                      } else {
+                        // 모든 질문 답변 완료 -> 기기 정보에 병합 후 최종 확인으로 이동
+                        const finalDevice = { ...analyzedDevice };
+                        
+                        if (newResolved.brand) finalDevice.brand = newResolved.brand;
+                        
+                        finalDevice.specs = {
+                          ...finalDevice.specs,
+                          ...newResolved
+                        };
+                        
+                        // 후보 모델이 있으면 첫 번째 것을 임시 할당
+                        if (!finalDevice.model && finalDevice.candidateModels?.length > 0) {
+                           finalDevice.model = finalDevice.candidateModels[0] + " (예상)";
+                        }
+
+                        // 사용자 답변 기반 시각 요약 업데이트
+                        finalDevice.visionSummary = finalDevice.visionSummary + " + 사용자 답변 기반 모델 추론됨";
+
+                        setAnalyzedDevice(finalDevice);
+                        setStep("final_confirm");
+                      }
+                    }}
+                  >
+                    {opt}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
         )}
