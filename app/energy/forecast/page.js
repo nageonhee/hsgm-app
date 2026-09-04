@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { useDevices } from "@/contexts/DeviceContext";
-import { calculateKepcoBill, KEPCO_STAGES } from "@/lib/energyCalculator";
+import { calculateKepcoBill, getTariffTiers } from "@/lib/energyCalculator";
 import {
   AlertTriangle,
   TrendingUp,
@@ -37,6 +37,14 @@ export default function ProgressiveForecastPage() {
   const currentDay = now.getDate();
   const totalDaysInMonth = new Date(now.getFullYear(), currentMonth, 0).getDate();
 
+  const { tier1Limit, tier2Limit, seasonName } = useMemo(() => getTariffTiers(currentMonth), [currentMonth]);
+
+  const KEPCO_STAGES = useMemo(() => [
+    { stage: 1, range: `~ ${tier1Limit}kWh`, ratePerKWh: "120.0" },
+    { stage: 2, range: `${tier1Limit + 1} ~ ${tier2Limit}kWh`, ratePerKWh: "214.6" },
+    { stage: 3, range: `${tier2Limit}kWh 초과`, ratePerKWh: "307.3" }
+  ], [tier1Limit, tier2Limit]);
+
   // 2. Supabase 등록 가전 기반 총 예상 전력량 집계 (등록 가전이 없을 시 표준 가구 기본값 280kWh 적용)
   const calculatedMetrics = useMemo(() => {
     const registeredKWh = devices.reduce((sum, d) => {
@@ -61,18 +69,18 @@ export default function ProgressiveForecastPage() {
     let breakStage = null;
     let breakDateText = "월말까지 돌파 없음";
 
-    if (currentUsageKWh < 200 && projectedNormal >= 200) {
+    if (currentUsageKWh < tier1Limit && projectedNormal >= tier1Limit) {
       breakStage = 2;
-      const daysToBreak = Math.ceil((200 - currentUsageKWh) / dailyAverage);
+      const daysToBreak = Math.ceil((tier1Limit - currentUsageKWh) / dailyAverage);
       const breachDay = Math.min(totalDaysInMonth, currentDay + daysToBreak);
       breakDateText = `${currentMonth}월 ${breachDay}일경`;
-    } else if (currentUsageKWh < 400 && projectedNormal >= 400) {
+    } else if (currentUsageKWh < tier2Limit && projectedNormal >= tier2Limit) {
       breakStage = 3;
-      const daysToBreak = Math.ceil((400 - currentUsageKWh) / dailyAverage);
+      const daysToBreak = Math.ceil((tier2Limit - currentUsageKWh) / dailyAverage);
       const breachDay = Math.min(totalDaysInMonth, currentDay + daysToBreak);
       breakDateText = `${currentMonth}월 ${breachDay}일경`;
-    } else if (currentUsageKWh >= 200) {
-      breakStage = currentUsageKWh >= 400 ? 3 : 2;
+    } else if (currentUsageKWh >= tier1Limit) {
+      breakStage = currentUsageKWh >= tier2Limit ? 3 : 2;
       breakDateText = "이미 돌파 완료";
     }
 
@@ -110,7 +118,7 @@ export default function ProgressiveForecastPage() {
       shieldBill,
       savedAmount,
     };
-  }, [devices, currentMonth, currentDay, totalDaysInMonth]);
+  }, [devices, currentMonth, currentDay, totalDaysInMonth, tier1Limit, tier2Limit]);
 
   return (
     <AppShell>
@@ -194,10 +202,10 @@ export default function ProgressiveForecastPage() {
           {KEPCO_STAGES.map((stg) => {
             const isCurrent =
               stg.stage === 1
-                ? calculatedMetrics.currentUsageKWh <= 200
+                ? calculatedMetrics.currentUsageKWh <= tier1Limit
                 : stg.stage === 2
-                ? calculatedMetrics.currentUsageKWh > 200 && calculatedMetrics.currentUsageKWh <= 400
-                : calculatedMetrics.currentUsageKWh > 400;
+                ? calculatedMetrics.currentUsageKWh > tier1Limit && calculatedMetrics.currentUsageKWh <= tier2Limit
+                : calculatedMetrics.currentUsageKWh > tier2Limit;
 
             const isTarget = calculatedMetrics.breakStage === stg.stage;
 
@@ -274,11 +282,11 @@ export default function ProgressiveForecastPage() {
                     fontSize: "12px",
                   }}
                 />
-                {/* 누진 1단계 200kWh 기준선 */}
+                {/* 누진 1단계 기준선 */}
                 <ReferenceLine
-                  y={200}
+                  y={tier1Limit}
                   label={{
-                    value: "200 kWh (1단계 기준)",
+                    value: `${tier1Limit} kWh (1단계 기준)`,
                     fill: "#F87171",
                     fontSize: 11,
                     position: "insideTopRight",
@@ -287,11 +295,11 @@ export default function ProgressiveForecastPage() {
                   strokeDasharray="4 4"
                   strokeWidth={2}
                 />
-                {/* 누진 2단계 400kWh 기준선 */}
+                {/* 누진 2단계 기준선 */}
                 <ReferenceLine
-                  y={400}
+                  y={tier2Limit}
                   label={{
-                    value: "400 kWh (2단계 기준)",
+                    value: `${tier2Limit} kWh (2단계 기준)`,
                     fill: "#EF4444",
                     fontSize: 11,
                     position: "insideTopRight",
