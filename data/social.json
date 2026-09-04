@@ -1,0 +1,53 @@
+{
+  "neighborComparison": {
+    "myUsageKWh": 178.4,
+    "myCost": 42350,
+    "similarAreaAvgKWh": 224.0,
+    "similarAreaAvgCost": 54200,
+    "percentile": 24,
+    "savedComparison": "동일 평수(32평) 이웃 상위 24% (월 11,850원 덜 냄)",
+    "monthlyComparison": [
+      { "month": "5월", "myHome": 145, "neighbors": 160 },
+      { "month": "6월", "myHome": 162, "neighbors": 195 },
+      { "month": "7월", "myHome": 210, "neighbors": 280 },
+      { "month": "8월", "myHome": 245, "neighbors": 340 },
+      { "month": "9월", "myHome": 178, "neighbors": 224 }
+    ]
+  },
+  "nationalDR": {
+    "accumulatedPoints": 14500,
+    "thisMonthEarnedPoints": 3200,
+    "activeEvent": {
+      "id": "dr-event-924",
+      "title": "국민 DR (에너지 쉼표) 발령 중!",
+      "timeRange": "오늘 16:00 ~ 17:00 (1시간)",
+      "targetSavingKW": "0.5 kW 감축",
+      "rewardPerKW": "1,000 P / kWh",
+      "suggestedAction": "에어컨 온도 2도 상향 및 세탁기 가동 1시간 연기",
+      "isAutoJoined": true
+    },
+    "history": [
+      { "date": "9월 8일", "event": "주중 전력피크 감축 참여", "reducedKWh": 0.85, "points": 850, "status": "지급 완료" },
+      { "date": "8월 29일", "event": "폭염 피크타임 DR 참여", "reducedKWh": 1.20, "points": 1200, "status": "지급 완료" },
+      { "date": "8월 14일", "event": "주말 긴급 DR 참여", "reducedKWh": 1.15, "points": 1150, "status": "지급 완료" }
+    ]
+  },
+  "oldApplianceROI": [
+    {
+      "id": "roi-1",
+      "currentDevice": "12년 된 구형 양문형 냉장고 (2012년형 5등급)",
+      "currentMonthlyCost": 22400,
+      "currentAnnualCost": 268800,
+      "recommendedNewModel": "삼성 비스포크 4도어 AI 절전 (에너지 1등급)",
+      "newMonthlyCost": 6100,
+      "newAnnualCost": 73200,
+      "annualSavings": 195600,
+      "newDevicePrice": 1290000,
+      "govSubsidy": 300000,
+      "netCost": 990000,
+      "paybackPeriodYears": "4.8년",
+      "carbonReductionKg": "420 kg/년 (소나무 63그루 효과)",
+      "urgency": "교체 강력 추천 (전력 3.6배 과다 소모)"
+    }
+  ]
+}
