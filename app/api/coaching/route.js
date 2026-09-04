@@ -59,7 +59,7 @@ export async function POST(req) {
       text: `${systemPrompt}\n\n사용자 질문: ${lastMessage || "현재 가전 상태를 점검해줘."}`,
     });
 
-    // 4. 구글 최신 권장 모델 순차 시도 (gemini-3.6-flash 우선 호출)
+    // 4. 구글 최신 권장 모델 순차 시도
     const targetModels = [
       "gemini-3.6-flash",
       "gemini-3.5-flash",
@@ -105,7 +105,7 @@ export async function POST(req) {
         const chunks = replyText.split("");
         for (let i = 0; i < chunks.length; i++) {
           controller.enqueue(encoder.encode(chunks[i]));
-          await new Promise((r) => setTimeout(r, 6));
+          // 고의적인 지연(setTimeout)을 제거하여 즉각적으로 스트리밍되게 수정함
         }
         controller.close();
       },
