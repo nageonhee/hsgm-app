@@ -224,7 +224,7 @@ export default function DynamicDashboard() {
         >
           <div
             style={{
-              transform: `translateX(${dragX}px) rotate(${dragX * 0.04}deg)`,
+              transform: `translateX(${dragX}px)`,
               transition: isDragging ? "none" : "transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
             className="flex flex-col items-center space-y-3 sm:space-y-4 w-full"
