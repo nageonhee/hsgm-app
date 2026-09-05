@@ -214,27 +214,29 @@ export default function DynamicDashboard() {
         </div>
       </div>
 
-      {/* 2. 중앙 대형 기기 그래픽 및 실시간 원터치 전원 제어 (손가락 추종 터치 드래그 스와이프) */}
+      {/* 2. 중앙 대형 기기 그래픽 영역 (화면 전체 너비 스와이프 영역 -> 가전만 변경, 페이지 전환 완전 차단) */}
       {activeDevice ? (
-        <div className="flex flex-col items-center space-y-3 sm:space-y-4 relative w-full">
+        <div
+          onTouchStart={handleDeviceTouchStart}
+          onTouchMove={handleDeviceTouchMove}
+          onTouchEnd={handleDeviceTouchEnd}
+          className="w-full relative flex flex-col items-center justify-center space-y-3 sm:space-y-4 py-2 select-none touch-none cursor-grab active:cursor-grabbing"
+        >
+          {/* 화면 좌우 양끝 스와이프 안내 화살표 */}
+          <div className="absolute left-0.5 top-1/2 -translate-y-1/2 text-muted-foreground/30 flex items-center pointer-events-none">
+            <ChevronLeft className="w-6 h-6 animate-pulse" />
+          </div>
+          <div className="absolute right-0.5 top-1/2 -translate-y-1/2 text-muted-foreground/30 flex items-center pointer-events-none">
+            <ChevronRight className="w-6 h-6 animate-pulse" />
+          </div>
+
           <div
-            onTouchStart={handleDeviceTouchStart}
-            onTouchMove={handleDeviceTouchMove}
-            onTouchEnd={handleDeviceTouchEnd}
             style={{
               transform: `translateX(${dragX}px) rotate(${dragX * 0.04}deg)`,
               transition: isDragging ? "none" : "transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
-            className="relative group cursor-grab active:cursor-grabbing select-none touch-none"
+            className="flex flex-col items-center space-y-3 sm:space-y-4 w-full"
           >
-            {/* 좌우 스와이프 안내 화살표 */}
-            <div className="absolute -left-6 top-1/2 -translate-y-1/2 text-muted-foreground/40 hidden sm:flex items-center pointer-events-none">
-              <ChevronLeft className="w-5 h-5 animate-pulse" />
-            </div>
-            <div className="absolute -right-6 top-1/2 -translate-y-1/2 text-muted-foreground/40 hidden sm:flex items-center pointer-events-none">
-              <ChevronRight className="w-5 h-5 animate-pulse" />
-            </div>
-
             {/* 후면 가동 상태 글로우 효과 */}
             <div
               className={`absolute -inset-2 rounded-full blur-xl transition-all duration-500 opacity-60 ${
@@ -268,67 +270,72 @@ export default function DynamicDashboard() {
                 </span>
               </div>
             </div>
+
+            {/* 기기 명칭 및 상세 정보 */}
+            <div className="text-center space-y-1.5 pt-1">
+              <div>
+                <div className="flex items-center justify-center gap-1.5">
+                  <span className="text-[11px] sm:text-xs font-bold text-muted-foreground uppercase">
+                    {activeDevice.brand}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">•</span>
+                  <span className="text-[11px] sm:text-xs text-muted-foreground">
+                    에너지 {activeDevice.energyGrade ?? 1}등급
+                  </span>
+                </div>
+                <h2 className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight mt-0.5">
+                  {activeDevice.name}
+                </h2>
+                <p className="text-[11px] sm:text-xs text-muted-foreground font-medium mt-0.5">
+                  월 예상 ₩{Number(activeDevice.monthlyCost ?? activeDevice.monthly_cost ?? 0).toLocaleString()}원 (
+                  {activeDevice.monthlyUsageKWh ?? activeDevice.monthly_usage_kwh ?? 0} kWh)
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* 기기 명칭 및 원클릭 전원 버튼 */}
-          <div className="text-center space-y-1.5 pt-1">
-            <div>
-              <div className="flex items-center justify-center gap-1.5">
-                <span className="text-[11px] sm:text-xs font-bold text-muted-foreground uppercase">
-                  {activeDevice.brand}
-                </span>
-                <span className="text-[11px] text-muted-foreground">•</span>
-                <span className="text-[11px] sm:text-xs text-muted-foreground">
-                  에너지 {activeDevice.energyGrade ?? 1}등급
-                </span>
-              </div>
-              <h2 className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight mt-0.5">
-                {activeDevice.name}
-              </h2>
-              <p className="text-[11px] sm:text-xs text-muted-foreground font-medium mt-0.5">
-                월 예상 ₩{Number(activeDevice.monthlyCost ?? activeDevice.monthly_cost ?? 0).toLocaleString()}원 (
-                {activeDevice.monthlyUsageKWh ?? activeDevice.monthly_usage_kwh ?? 0} kWh)
-              </p>
-            </div>
-
-            {/* 메인 원터치 전원 버튼 */}
-            <div className="flex items-center justify-center gap-2 pt-0.5">
-              {activeDevice.category === "refrigerator" || activeDevice.isProtectedGuardrail ? (
-                <Button
-                  onClick={() => toggleDeviceStatus(activeDevice.id)}
-                  size="sm"
-                  className="rounded-2xl font-extrabold text-xs h-9 sm:h-10 px-4 sm:px-5 gap-2 transition-all shadow-md bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
-                  <span>24시간 가동 중 (끄기 불가)</span>
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => toggleDeviceStatus(activeDevice.id)}
-                  size="sm"
-                  className={`rounded-2xl font-extrabold text-xs h-9 sm:h-10 px-4 sm:px-5 gap-2 transition-all shadow-md ${
-                    activeDevice.status
-                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30"
-                      : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border"
-                  }`}
-                >
-                  <Power className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
-                  <span>{activeDevice.status ? "전원 가동 중 (끄기)" : "가전 전원 켜기"}</span>
-                </Button>
-              )}
-
+          {/* 메인 원터치 전원 버튼 및 상세 보기 버튼 (버튼 터치 시 클릭 작동을 위해 stopPropagation) */}
+          <div
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            className="flex items-center justify-center gap-2 pt-0.5 z-10"
+          >
+            {activeDevice.category === "refrigerator" || activeDevice.isProtectedGuardrail ? (
               <Button
-                asChild
-                variant="outline"
+                onClick={() => toggleDeviceStatus(activeDevice.id)}
                 size="sm"
-                className="rounded-2xl text-xs h-9 sm:h-10 px-3 sm:px-3.5 border-border"
+                className="rounded-2xl font-extrabold text-xs h-9 sm:h-10 px-4 sm:px-5 gap-2 transition-all shadow-md bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
               >
-                <Link href={`/devices/${activeDevice.id}`}>
-                  상세 보기
-                  <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
-                </Link>
+                <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+                <span>24시간 가동 중 (끄기 불가)</span>
               </Button>
-            </div>
+            ) : (
+              <Button
+                onClick={() => toggleDeviceStatus(activeDevice.id)}
+                size="sm"
+                className={`rounded-2xl font-extrabold text-xs h-9 sm:h-10 px-4 sm:px-5 gap-2 transition-all shadow-md ${
+                  activeDevice.status
+                    ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30"
+                    : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border"
+                }`}
+              >
+                <Power className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+                <span>{activeDevice.status ? "전원 가동 중 (끄기)" : "가전 전원 켜기"}</span>
+              </Button>
+            )}
+
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="rounded-2xl text-xs h-9 sm:h-10 px-3 sm:px-3.5 border-border"
+            >
+              <Link href={`/devices/${activeDevice.id}`}>
+                상세 보기
+                <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+              </Link>
+            </Button>
           </div>
         </div>
       ) : (
