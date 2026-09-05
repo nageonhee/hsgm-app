@@ -107,7 +107,7 @@ export default function DynamicDashboard() {
 
   // 가전 카테고리별 중앙 아이콘 매핑
   const renderDeviceIcon = (category) => {
-    const iconProps = { className: "w-24 h-24 text-foreground stroke-[1.5]" };
+    const iconProps = { className: "w-16 h-16 sm:w-24 sm:h-24 text-foreground stroke-[1.5]" };
     switch (category) {
       case "air_conditioner":
         return <AirVent {...iconProps} />;
@@ -129,7 +129,7 @@ export default function DynamicDashboard() {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col items-center py-4 px-4 space-y-7 animate-in fade-in duration-300">
+    <div className="w-full max-w-3xl mx-auto flex flex-col items-center py-2 sm:py-4 px-3 sm:px-4 space-y-4 sm:space-y-6 animate-in fade-in duration-300">
       {/* 1. 상단 카테고리 칩 필터 */}
       <div className="flex items-center gap-1.5 p-1.5 bg-muted/60 rounded-full border border-border shadow-xs overflow-x-auto max-w-full scrollbar-none">
         {availableCategories.map((cat) => {
@@ -140,7 +140,7 @@ export default function DynamicDashboard() {
             <button
               key={cat.key}
               onClick={() => setSelectedCategory(cat.key)}
-              className={`relative px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+              className={`relative px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
                 isSelected
                   ? "bg-background text-foreground shadow-sm font-bold"
                   : "text-muted-foreground hover:text-foreground"
@@ -157,7 +157,7 @@ export default function DynamicDashboard() {
 
       {/* 2. 중앙 대형 기기 그래픽 및 실시간 원터치 전원 제어 */}
       {activeDevice ? (
-        <div className="flex flex-col items-center space-y-4">
+        <div className="flex flex-col items-center space-y-3 sm:space-y-4">
           <div className="relative group">
             {/* 후면 가동 상태 글로우 효과 */}
             <div
@@ -170,7 +170,7 @@ export default function DynamicDashboard() {
 
             {/* 메인 원형 기기 그래픽 */}
             <div
-              className={`relative w-64 h-64 rounded-full border transition-all duration-300 flex items-center justify-center shadow-inner ${
+              className={`relative w-48 h-48 sm:w-64 sm:h-64 rounded-full border transition-all duration-300 flex items-center justify-center shadow-inner ${
                 activeDevice.status
                   ? "border-blue-500/50 bg-gradient-to-b from-blue-500/10 via-muted/30 to-muted/80 shadow-blue-500/10"
                   : "border-border/70 bg-gradient-to-b from-muted/20 to-muted/60 opacity-80"
@@ -195,36 +195,36 @@ export default function DynamicDashboard() {
           </div>
 
           {/* 기기 명칭 및 원클릭 전원 버튼 */}
-          <div className="text-center space-y-2 pt-2">
+          <div className="text-center space-y-1.5 pt-1">
             <div>
               <div className="flex items-center justify-center gap-1.5">
-                <span className="text-xs font-bold text-muted-foreground uppercase">
+                <span className="text-[11px] sm:text-xs font-bold text-muted-foreground uppercase">
                   {activeDevice.brand}
                 </span>
-                <span className="text-xs text-muted-foreground">•</span>
-                <span className="text-xs text-muted-foreground">에너지 {activeDevice.energyGrade ?? 1}등급</span>
+                <span className="text-[11px] text-muted-foreground">•</span>
+                <span className="text-[11px] sm:text-xs text-muted-foreground">에너지 {activeDevice.energyGrade ?? 1}등급</span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight mt-0.5">
+              <h2 className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight mt-0.5">
                 {activeDevice.name}
               </h2>
-              <p className="text-xs text-muted-foreground font-medium mt-0.5">
+              <p className="text-[11px] sm:text-xs text-muted-foreground font-medium mt-0.5">
                 월 예상 ₩{Number(activeDevice.monthlyCost ?? activeDevice.monthly_cost ?? 0).toLocaleString()}원 (
                 {activeDevice.monthlyUsageKWh ?? activeDevice.monthly_usage_kwh ?? 0} kWh)
               </p>
             </div>
 
             {/* 메인 원터치 전원 버튼 */}
-            <div className="flex items-center justify-center gap-2 pt-1">
+            <div className="flex items-center justify-center gap-2 pt-0.5">
               <Button
                 onClick={() => toggleDeviceStatus(activeDevice.id)}
                 size="sm"
-                className={`rounded-2xl font-extrabold text-xs h-10 px-5 gap-2 transition-all shadow-md ${
+                className={`rounded-2xl font-extrabold text-xs h-9 sm:h-10 px-4 sm:px-5 gap-2 transition-all shadow-md ${
                   activeDevice.status
                     ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30"
                     : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border"
                 }`}
               >
-                <Power className="w-4 h-4 stroke-[2.5]" />
+                <Power className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
                 <span>{activeDevice.status ? "전원 가동 중 (끄기)" : "가전 전원 켜기"}</span>
               </Button>
 
@@ -232,7 +232,7 @@ export default function DynamicDashboard() {
                 asChild
                 variant="outline"
                 size="sm"
-                className="rounded-2xl text-xs h-10 px-3.5 border-border"
+                className="rounded-2xl text-xs h-9 sm:h-10 px-3 sm:px-3.5 border-border"
               >
                 <Link href={`/devices/${activeDevice.id}`}>
                   상세 보기
@@ -263,37 +263,38 @@ export default function DynamicDashboard() {
         </div>
       )}
 
-      {/* 3. 하단 실시간 종합 전력 & 한전 누진 요금 요약 (실시간 티커 바인딩) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full max-w-lg">
+      {/* 3. 하단 실시간 종합 전력 & 한전 누진 요금 요약 (모바일 2열 나란히 배치) */}
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5 w-full max-w-lg">
         {/* 전체 소비전력 카드 */}
-        <div className="p-4 rounded-3xl bg-card border border-border shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-              <Activity className={`w-3.5 h-3.5 ${totalActiveWatts > 0 ? "text-blue-500 animate-pulse" : "text-muted-foreground"}`} />
-              우리집 실시간 전력
+        <div className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-card border border-border shadow-xs space-y-1.5 flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[11px] sm:text-xs text-muted-foreground font-semibold flex items-center gap-1 truncate">
+              <Activity className={`w-3.5 h-3.5 shrink-0 ${totalActiveWatts > 0 ? "text-blue-500 animate-pulse" : "text-muted-foreground"}`} />
+              <span className="truncate">실시간 전력</span>
             </span>
-            <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-500 border-blue-500/30">
-              {activeDevices.length}대 가동 중
+            <Badge variant="outline" className="text-[9px] sm:text-[10px] bg-blue-500/10 text-blue-500 border-blue-500/30 px-1.5 py-0 shrink-0">
+              {activeDevices.length}대 가동
             </Badge>
           </div>
-          <div className="flex items-baseline gap-1.5">
-            <Zap className="w-5 h-5 text-blue-500 fill-blue-500 shrink-0 self-center" />
-            <span className="text-2xl font-mono font-extrabold text-foreground tracking-tight">
-              {totalActiveWatts.toLocaleString()}
-            </span>
-            <span className="text-xs text-muted-foreground font-semibold">W</span>
-            <span className="text-xs text-muted-foreground ml-auto font-mono">
+          <div>
+            <div className="flex items-baseline gap-1 flex-wrap">
+              <span className="text-lg sm:text-2xl font-mono font-extrabold text-foreground tracking-tight">
+                {totalActiveWatts.toLocaleString()}
+              </span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground font-semibold">W</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground font-mono block">
               ({(totalActiveWatts / 1000).toFixed(2)} kW)
             </span>
           </div>
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5 border-t border-border/50">
-            <span>총 {devices.length}개 가전 중 작동</span>
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/50 font-mono">
+            <span className="truncate">작동 {activeDevices.length}/{devices.length}대</span>
             {totalActiveWatts > 0 ? (
-              <span className="text-blue-500 font-bold font-mono">
-                시간당 약 ₩{hourlyRunningCost.toLocaleString()}원
+              <span className="text-blue-500 font-bold shrink-0">
+                ₩{hourlyRunningCost.toLocaleString()}/h
               </span>
             ) : (
-              <span>대기 중</span>
+              <span className="shrink-0">대기 중</span>
             )}
           </div>
         </div>
@@ -301,31 +302,34 @@ export default function DynamicDashboard() {
         {/* 한전 누진 요금 카드 */}
         <Link
           href="/energy/forecast"
-          className="p-4 rounded-3xl bg-card border border-border shadow-xs space-y-2 hover:border-primary/50 transition-all group"
+          className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-card border border-border shadow-xs space-y-1.5 flex flex-col justify-between hover:border-primary/50 transition-all group"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-              이번 달 예상 청구 요금
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[11px] sm:text-xs text-muted-foreground font-semibold flex items-center gap-1 truncate">
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <span className="truncate">예상 청구 요금</span>
             </span>
-            <span className="text-[10px] text-primary flex items-center font-bold group-hover:underline">
-              누진세 분석
-              <ChevronRight className="w-3.5 h-3.5" />
+            <span className="text-[9px] sm:text-[10px] text-primary flex items-center font-bold shrink-0 group-hover:underline">
+              누진세
+              <ChevronRight className="w-3 h-3 ml-0.5" />
             </span>
           </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl font-mono font-extrabold text-foreground tracking-tight">
-              ₩{totalKepcoBill.toLocaleString()}
+          <div>
+            <div className="flex items-baseline gap-1 flex-wrap">
+              <span className="text-lg sm:text-2xl font-mono font-extrabold text-foreground tracking-tight">
+                ₩{totalKepcoBill.toLocaleString()}
+              </span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground">/월</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground font-mono block truncate">
+              총 {totalMonthlyKWh.toFixed(1)} kWh
             </span>
-            <span className="text-xs text-muted-foreground">/월</span>
           </div>
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5 border-t border-border/50">
-            <span className="font-mono">
-              총 {totalMonthlyKWh.toFixed(1)} kWh 기준
-            </span>
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/50 font-mono">
+            <span className="text-emerald-500 font-bold truncate">누진세 분석</span>
             {liveAccumulatedKWh > 0 && (
-              <span className="text-emerald-500 text-[10px] font-mono font-bold animate-pulse">
-                실시간 누적 중 (+{(liveAccumulatedKWh * 1000).toFixed(1)}Wh)
+              <span className="text-emerald-500 text-[9px] font-bold animate-pulse shrink-0">
+                +{(liveAccumulatedKWh * 1000).toFixed(1)}Wh
               </span>
             )}
           </div>
