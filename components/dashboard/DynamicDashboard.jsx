@@ -215,18 +215,29 @@ export default function DynamicDashboard() {
 
             {/* 메인 원터치 전원 버튼 */}
             <div className="flex items-center justify-center gap-2 pt-0.5">
-              <Button
-                onClick={() => toggleDeviceStatus(activeDevice.id)}
-                size="sm"
-                className={`rounded-2xl font-extrabold text-xs h-9 sm:h-10 px-4 sm:px-5 gap-2 transition-all shadow-md ${
-                  activeDevice.status
-                    ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30"
-                    : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border"
-                }`}
-              >
-                <Power className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
-                <span>{activeDevice.status ? "전원 가동 중 (끄기)" : "가전 전원 켜기"}</span>
-              </Button>
+              {activeDevice.category === "refrigerator" || activeDevice.isProtectedGuardrail ? (
+                <Button
+                  onClick={() => toggleDeviceStatus(activeDevice.id)}
+                  size="sm"
+                  className="rounded-2xl font-extrabold text-xs h-9 sm:h-10 px-4 sm:px-5 gap-2 transition-all shadow-md bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+                  <span>24시간 가동 중 (끄기 불가)</span>
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => toggleDeviceStatus(activeDevice.id)}
+                  size="sm"
+                  className={`rounded-2xl font-extrabold text-xs h-9 sm:h-10 px-4 sm:px-5 gap-2 transition-all shadow-md ${
+                    activeDevice.status
+                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30"
+                      : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border"
+                  }`}
+                >
+                  <Power className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+                  <span>{activeDevice.status ? "전원 가동 중 (끄기)" : "가전 전원 켜기"}</span>
+                </Button>
+              )}
 
               <Button
                 asChild

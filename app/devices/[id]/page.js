@@ -94,8 +94,16 @@ export default function DeviceDetailPage() {
               </div>
             </div>
 
-            {/* Power Toggle if supported */}
-            {device.isSmartControl && device.category !== "refrigerator" && (
+            {/* Power Toggle / Guardrail Badge */}
+            {device.category === "refrigerator" || device.isProtectedGuardrail ? (
+              <button
+                onClick={() => toggleDeviceStatus(device.id)}
+                className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30 transition-all"
+                title="냉장고 24시간 가동 필수 (전원 차단 불가)"
+              >
+                <ShieldCheck className="w-5 h-5 stroke-[2.2]" />
+              </button>
+            ) : device.isSmartControl && (
               <button
                 onClick={() => toggleDeviceStatus(device.id)}
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${

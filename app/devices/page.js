@@ -115,6 +115,7 @@ export default function DevicesPage() {
           {filteredDevices.map((device) => {
             const Icon = ICON_MAP[device.icon] || Zap;
             const isOn = device.status;
+            const isFridgeGuardrail = device.category === "refrigerator" || device.isProtectedGuardrail;
 
             return (
               <div
@@ -146,26 +147,30 @@ export default function DevicesPage() {
                     <Badge variant="outline" className="text-[10px] bg-accent/50 border-border px-1.5 py-0 font-medium">
                       에너지 {device.energyGrade}등급
                     </Badge>
-                    {device.isProtectedGuardrail && (
-                      <Badge variant="outline" className="text-[10px] bg-primary/10 border-primary/30 text-primary gap-1 px-1.5 py-0">
+                    {isFridgeGuardrail && (
+                      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 border-emerald-500/30 text-emerald-500 gap-1 px-1.5 py-0">
                         <ShieldCheck className="w-3 h-3" />
-                        가드레일 보호
+                        24시간 가동 필수
                       </Badge>
                     )}
                   </div>
 
                   <button
-                    onClick={() => !device.isProtectedGuardrail && toggleDeviceStatus(device.id)}
-                    disabled={device.isProtectedGuardrail}
+                    onClick={() => toggleDeviceStatus(device.id)}
                     className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
-                      device.isProtectedGuardrail
-                        ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
+                      isFridgeGuardrail
+                        ? "bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30"
                         : isOn
                         ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:bg-primary/90"
                         : "bg-accent text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground"
                     }`}
+                    title={isFridgeGuardrail ? "냉장고 24시간 가동 필수 (전원 차단 불가)" : isOn ? "전원 끄기" : "전원 켜기"}
                   >
-                    <Power className="w-5 h-5 stroke-[2.5]" />
+                    {isFridgeGuardrail ? (
+                      <ShieldCheck className="w-5 h-5 stroke-[2.2]" />
+                    ) : (
+                      <Power className="w-5 h-5 stroke-[2.5]" />
+                    )}
                   </button>
                 </div>
 
