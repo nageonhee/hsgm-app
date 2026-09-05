@@ -294,14 +294,10 @@ export default function DynamicDashboard() {
             className="flex items-center justify-center gap-2 pt-0.5 z-10"
           >
             {activeDevice.category === "refrigerator" || activeDevice.isProtectedGuardrail ? (
-              <Button
-                onClick={() => toggleDeviceStatus(activeDevice.id)}
-                size="sm"
-                className="rounded-2xl font-extrabold text-xs h-9 sm:h-10 px-4 sm:px-5 gap-2 transition-all shadow-md bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
-                <span>24시간 가동 중 (끄기 불가)</span>
-              </Button>
+              <div className="rounded-2xl font-bold text-xs h-9 sm:h-10 px-4 sm:px-5 gap-2 border border-border bg-muted/80 text-muted-foreground flex items-center shadow-xs cursor-default">
+                <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground/70" />
+                <span>상시 가동 가전 (IoT 제어 미지원)</span>
+              </div>
             ) : (
               <Button
                 onClick={() => toggleDeviceStatus(activeDevice.id)}

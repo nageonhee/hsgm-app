@@ -148,9 +148,9 @@ export default function DevicesPage() {
                       에너지 {device.energyGrade}등급
                     </Badge>
                     {isFridgeGuardrail && (
-                      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 border-emerald-500/30 text-emerald-500 gap-1 px-1.5 py-0">
-                        <ShieldCheck className="w-3 h-3" />
-                        24시간 가동 필수
+                      <Badge variant="outline" className="text-[10px] bg-muted border-border text-muted-foreground gap-1 px-1.5 py-0">
+                        <ShieldCheck className="w-3 h-3 text-muted-foreground/70" />
+                        상시 가동 (IoT 미지원)
                       </Badge>
                     )}
                   </div>
@@ -159,15 +159,15 @@ export default function DevicesPage() {
                     onClick={() => toggleDeviceStatus(device.id)}
                     className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center shrink-0 transition-all ${
                       isFridgeGuardrail
-                        ? "bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30"
+                        ? "bg-muted text-muted-foreground/50 border border-border cursor-default"
                         : isOn
                         ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:bg-primary/90"
                         : "bg-accent text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground"
                     }`}
-                    title={isFridgeGuardrail ? "냉장고 24시간 가동 필수 (전원 차단 불가)" : isOn ? "전원 끄기" : "전원 켜기"}
+                    title={isFridgeGuardrail ? "상시 가동 가전 (IoT 원격 제어 미지원)" : isOn ? "전원 끄기" : "전원 켜기"}
                   >
                     {isFridgeGuardrail ? (
-                      <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
+                      <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2]" />
                     ) : (
                       <Power className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
                     )}

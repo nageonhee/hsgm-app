@@ -166,9 +166,8 @@ export function DeviceProvider({ children }) {
     const target = devices.find((d) => d.id === id);
     if (!target) return;
 
-    // 안전 가드레일: 냉장고(refrigerator)는 식품 보관 및 안전을 위해 24시간 가동 필수 (전원 차단 불가)
-    if ((target.category === "refrigerator" || target.isProtectedGuardrail) && target.status) {
-      alert("⚠️ 냉장고는 식품 부패 방지 및 식품 안전을 위해 24시간 가동 필수 가전입니다. (전원 차단 불가)");
+    // 냉장고 또는 IoT 미지원 일반 가전은 전원 제어를 거부하되 경고창(alert)을 띄우지 않고 자연스럽게 처리
+    if (target.category === "refrigerator" || target.isProtectedGuardrail) {
       return;
     }
 
