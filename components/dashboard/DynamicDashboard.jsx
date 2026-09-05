@@ -40,99 +40,98 @@ export default function DynamicDashboard() {
   const { devices = [], toggleDeviceStatus, togglePinDevice } = useDevices();
   const [selectedCategory, setSelectedCategory] = useState("air_conditioner");
 
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const deviceTouchStartX = useRef(null);
   const deviceTouchStartY = useRef(null);
 
-  // 등록된 기기들에서 실제로 존재하는 카테고리들을 동적으로 탭에 반영
-  const availableCategories = useMemo(() => {
-    const registeredKeys = new Set(devices.map((d) => d.category));
-    return DEFAULT_CATEGORIES.filter(
-      (c) => registeredKeys.has(c.key) || ["air_conditioner", "refrigerator", "washer", "tv"].includes(c.key)
-    );
-  }, [devices]);
+  const availableCategories = DEFAULT_CATEGORIES;
 
-  // 현재 선택된 카테고리의 가전 찾기
+  // 선택된 카테고리의 대표 기기 선정
   const activeDevice = useMemo(() => {
-    const found = devices.find((d) => d.category === selectedCategory);
-    return found || devices[0] || null;
+    return devices.find((d) => d.category === selectedCategory) || devices[0] || null;
   }, [devices, selectedCategory]);
 
-  // 실시간 가동 중인 기기 목록
+  // 소비전력 및 한전 누진세 계산
   const activeDevices = useMemo(() => devices.filter((d) => d.status), [devices]);
+  const totalActiveWatts = useMemo(
+    () => devices.reduce((acc, d) => acc + (d.status ? d.currentPower || d.current_power || 0 : 0), 0),
+    [devices]
+  );
+  const hourlyRunningCost = Math.round((totalActiveWatts / 1000) * 215);
+  const totalMonthlyKWh = useMemo(
+    () => devices.reduce((acc, d) => acc + (d.monthlyUsageKWh || d.monthly_usage_kwh || 0), 0),
+    [devices]
+  );
+  const totalKepcoBill = useMemo(() => calculateKepcoBill(totalMonthlyKWh), [totalMonthlyKWh]);
+  const [liveAccumulatedKWh, setLiveAccumulatedKWh] = useState(0.001);
 
-  // 실시간 가동 총 소비전력(W)
-  const totalActiveWatts = useMemo(() => {
-    return activeDevices.reduce(
-      (sum, d) => sum + Number(d.currentPower ?? d.current_power ?? 0),
-      0
-    );
-  }, [activeDevices]);
-
-  // [약점 3 해결] 실시간 가동 시간 누적 kWh 티커 상태
-  const [liveAccumulatedKWh, setLiveAccumulatedKWh] = useState(0);
-
-  // 기기가 가동 중일 때 2초마다 실제 전력량(W * t) 누적 계산 (스마트 계량기 시뮬레이션)
   useEffect(() => {
-    if (totalActiveWatts <= 0) return;
-
-    const interval = setInterval(() => {
-      // 2초 동안 소비된 전력량 (kWh = (W / 1000) * (2 / 3600))
-      const deltaKWh = (totalActiveWatts / 1000) * (2 / 3600);
-      setLiveAccumulatedKWh((prev) => prev + deltaKWh);
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [totalActiveWatts]);
-
-  // 등록된 모든 기기의 기본 월간 예상 전력량 + 실시간 누적 전력량
-  const totalMonthlyKWh = useMemo(() => {
-    const baseKWh = devices.reduce(
-      (sum, d) => sum + Number(d.monthlyUsageKWh ?? d.monthly_usage_kwh ?? d.monthlyUsage ?? 0),
-      0
-    );
-    return baseKWh + liveAccumulatedKWh;
-  }, [devices, liveAccumulatedKWh]);
-
-  // 한전 공식 누진 요금제 기준 이번 달 예상 청구 요금
-  const totalKepcoBill = useMemo(() => {
-    return calculateKepcoBill(totalMonthlyKWh);
-  }, [totalMonthlyKWh]);
-
-  // 실시간 가동 W 기준 시간당(h) 예상 추가 요금 (한전 2단계 요율 214.6원 기준)
-  const hourlyRunningCost = useMemo(() => {
-    if (totalActiveWatts <= 0) return 0;
-    return Math.round((totalActiveWatts / 1000) * 214.6);
-  }, [totalActiveWatts]);
+    const timer = setInterval(() => {
+      setLiveAccumulatedKWh((prev) => prev + 0.0001);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleDeviceTouchStart = (e) => {
     e.stopPropagation();
     deviceTouchStartX.current = e.touches[0].clientX;
     deviceTouchStartY.current = e.touches[0].clientY;
+    setIsDragging(true);
+    setDragX(0);
+  };
+
+  const handleDeviceTouchMove = (e) => {
+    e.stopPropagation();
+    if (deviceTouchStartX.current === null || !isDragging) return;
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const diffX = currentX - deviceTouchStartX.current;
+    const diffY = currentY - deviceTouchStartY.current;
+
+    // 수평 드래그가 주를 이룰 때만 실시간 위치 변경
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+      setDragX(diffX);
+    }
   };
 
   const handleDeviceTouchEnd = (e) => {
     e.stopPropagation();
-    if (deviceTouchStartX.current === null || deviceTouchStartY.current === null) return;
-    const deltaX = e.changedTouches[0].clientX - deviceTouchStartX.current;
-    const deltaY = e.changedTouches[0].clientY - deviceTouchStartY.current;
+    if (deviceTouchStartX.current === null) return;
+    setIsDragging(false);
+
+    const threshold = 55;
+    const currentIndex = availableCategories.findIndex((c) => c.key === selectedCategory);
+
+    if (dragX < -threshold && currentIndex !== -1) {
+      // 왼쪽으로 드래그 -> 다음 기기 카테고리
+      const nextIdx = (currentIndex + 1) % availableCategories.length;
+      setSelectedCategory(availableCategories[nextIdx].key);
+    } else if (dragX > threshold && currentIndex !== -1) {
+      // 오른쪽으로 드래그 -> 이전 기기 카테고리
+      const prevIdx = (currentIndex - 1 + availableCategories.length) % availableCategories.length;
+      setSelectedCategory(availableCategories[prevIdx].key);
+    }
+
     deviceTouchStartX.current = null;
     deviceTouchStartY.current = null;
-
-    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
-      const currentIndex = availableCategories.findIndex((c) => c.key === selectedCategory);
-      if (currentIndex === -1) return;
-
-      if (deltaX < 0) {
-        // 왼쪽으로 스와이프 -> 다음 기기 카테고리
-        const nextIdx = (currentIndex + 1) % availableCategories.length;
-        setSelectedCategory(availableCategories[nextIdx].key);
-      } else {
-        // 오른쪽으로 스와이프 -> 이전 기기 카테고리
-        const prevIdx = (currentIndex - 1 + availableCategories.length) % availableCategories.length;
-        setSelectedCategory(availableCategories[prevIdx].key);
-      }
-    }
+    setDragX(0);
   };
+
+  // 스와이프 중간 인식 실시간 계산
+  const currentCategoryIndex = availableCategories.findIndex((c) => c.key === selectedCategory);
+  const dragThreshold = 55;
+  let targetCategory = null;
+
+  if (isDragging && dragX !== 0 && currentCategoryIndex !== -1) {
+    if (dragX < 0) {
+      const nextIdx = (currentCategoryIndex + 1) % availableCategories.length;
+      targetCategory = availableCategories[nextIdx];
+    } else {
+      const prevIdx = (currentCategoryIndex - 1 + availableCategories.length) % availableCategories.length;
+      targetCategory = availableCategories[prevIdx];
+    }
+  }
 
   // 홈 즐겨찾기(Pin) 기기 목록
   const pinnedDevices = useMemo(() => {
@@ -189,13 +188,44 @@ export default function DynamicDashboard() {
         })}
       </div>
 
-      {/* 2. 중앙 대형 기기 그래픽 및 실시간 원터치 전원 제어 (좌우 스와이프 시 기기 전환) */}
+      {/* 2. 중앙 대형 기기 그래픽 및 실시간 원터치 전원 제어 (손가락 추종 터치 드래그 + 실시간 스와이프 인식 배지) */}
       {activeDevice ? (
-        <div className="flex flex-col items-center space-y-3 sm:space-y-4">
+        <div className="flex flex-col items-center space-y-3 sm:space-y-4 relative w-full">
+          {/* 스와이프 중간 실시간 인식 라이브 뱃지 */}
+          {isDragging && Math.abs(dragX) > 5 && targetCategory && (
+            <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-30 transition-all pointer-events-none">
+              <div
+                className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold shadow-xl backdrop-blur-md border flex items-center gap-1.5 whitespace-nowrap animate-in zoom-in-95 duration-150 ${
+                  Math.abs(dragX) >= dragThreshold
+                    ? "bg-blue-600 text-white border-blue-400 shadow-blue-500/40 ring-2 ring-blue-400/50"
+                    : "bg-background/95 text-foreground border-border shadow-md"
+                }`}
+              >
+                {dragX < 0 ? (
+                  <ChevronRight className="w-4 h-4 animate-pulse text-blue-400" />
+                ) : (
+                  <ChevronLeft className="w-4 h-4 animate-pulse text-blue-400" />
+                )}
+                <span>
+                  {Math.abs(dragX) >= dragThreshold
+                    ? `✨ 손을 떼면 '${targetCategory.label}'(으)로 전환됩니다!`
+                    : `'${targetCategory.label}' 전환 중... (${Math.round(
+                        (Math.abs(dragX) / dragThreshold) * 100
+                      )}%)`}
+                </span>
+              </div>
+            </div>
+          )}
+
           <div
             onTouchStart={handleDeviceTouchStart}
+            onTouchMove={handleDeviceTouchMove}
             onTouchEnd={handleDeviceTouchEnd}
-            className="relative group cursor-grab active:cursor-grabbing select-none"
+            style={{
+              transform: `translateX(${dragX}px) rotate(${dragX * 0.04}deg)`,
+              transition: isDragging ? "none" : "transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+            className="relative group cursor-grab active:cursor-grabbing select-none touch-none"
           >
             {/* 좌우 스와이프 안내 화살표 */}
             <div className="absolute -left-6 top-1/2 -translate-y-1/2 text-muted-foreground/40 hidden sm:flex items-center pointer-events-none">
@@ -248,7 +278,9 @@ export default function DynamicDashboard() {
                   {activeDevice.brand}
                 </span>
                 <span className="text-[11px] text-muted-foreground">•</span>
-                <span className="text-[11px] sm:text-xs text-muted-foreground">에너지 {activeDevice.energyGrade ?? 1}등급</span>
+                <span className="text-[11px] sm:text-xs text-muted-foreground">
+                  에너지 {activeDevice.energyGrade ?? 1}등급
+                </span>
               </div>
               <h2 className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight mt-0.5">
                 {activeDevice.name}
@@ -326,10 +358,17 @@ export default function DynamicDashboard() {
         <div className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-card border border-border shadow-xs space-y-1.5 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-1">
             <span className="text-[11px] sm:text-xs text-muted-foreground font-semibold flex items-center gap-1 truncate">
-              <Activity className={`w-3.5 h-3.5 shrink-0 ${totalActiveWatts > 0 ? "text-blue-500 animate-pulse" : "text-muted-foreground"}`} />
+              <Activity
+                className={`w-3.5 h-3.5 shrink-0 ${
+                  totalActiveWatts > 0 ? "text-blue-500 animate-pulse" : "text-muted-foreground"
+                }`}
+              />
               <span className="truncate">실시간 전력</span>
             </span>
-            <Badge variant="outline" className="text-[9px] sm:text-[10px] bg-blue-500/10 text-blue-500 border-blue-500/30 px-1.5 py-0 shrink-0">
+            <Badge
+              variant="outline"
+              className="text-[9px] sm:text-[10px] bg-blue-500/10 text-blue-500 border-blue-500/30 px-1.5 py-0 shrink-0"
+            >
               {activeDevices.length}대 가동
             </Badge>
           </div>
