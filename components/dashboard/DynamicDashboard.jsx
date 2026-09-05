@@ -233,7 +233,7 @@ export default function DynamicDashboard() {
             <div
               className={`relative w-48 h-48 sm:w-64 sm:h-64 rounded-full border transition-all duration-300 flex items-center justify-center shadow-inner ${
                 activeDevice.status
-                  ? "border-blue-500/50 bg-gradient-to-b from-blue-500/10 via-muted/30 to-muted/80 shadow-[0_0_12px_rgba(59,130,246,0.25)]"
+                  ? "border-blue-500/50 bg-gradient-to-b from-blue-500/10 via-muted/30 to-muted/80 shadow-[0_0_18px_rgba(59,130,246,0.3)]"
                   : "border-border/70 bg-gradient-to-b from-muted/20 to-muted/60 opacity-80"
               }`}
             >
