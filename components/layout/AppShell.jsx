@@ -87,29 +87,6 @@ export function AppShell({ children }) {
 
   return (
     <div className="fixed inset-0 overflow-hidden flex bg-background text-foreground">
-      {/* 스와이프 중간 실시간 페이지 인식 고정 뱃지 */}
-      {isPageDragging && Math.abs(pageDragX) > 5 && targetRoute && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-          <div
-            className={`px-4 py-2 rounded-full text-xs font-extrabold shadow-2xl border backdrop-blur-md flex items-center gap-2 transition-all animate-in slide-in-from-top-2 duration-150 ${
-              Math.abs(pageDragX) >= pageThreshold
-                ? "bg-blue-600 text-white border-blue-400 shadow-blue-500/40 ring-2 ring-blue-400/50"
-                : "bg-background/95 text-foreground border-border shadow-lg"
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
-            <span>
-              {Math.abs(pageDragX) >= pageThreshold
-                ? `✨ 손을 떼면 '${PAGE_NAMES[targetRoute]}' 페이지로 이동합니다!`
-                : `👉 '${PAGE_NAMES[targetRoute]}' 이동 중... (${Math.min(
-                    100,
-                    Math.round((Math.abs(pageDragX) / pageThreshold) * 100)
-                  )}%)`}
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Desktop Fixed Side Navigation */}
       <SideNav />
 

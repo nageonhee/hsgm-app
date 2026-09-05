@@ -214,35 +214,9 @@ export default function DynamicDashboard() {
         </div>
       </div>
 
-      {/* 2. 중앙 대형 기기 그래픽 및 실시간 원터치 전원 제어 (손가락 추종 터치 드래그 + 실시간 스와이프 인식 배지) */}
+      {/* 2. 중앙 대형 기기 그래픽 및 실시간 원터치 전원 제어 (손가락 추종 터치 드래그 스와이프) */}
       {activeDevice ? (
         <div className="flex flex-col items-center space-y-3 sm:space-y-4 relative w-full">
-          {/* 스와이프 중간 실시간 인식 라이브 뱃지 */}
-          {isDragging && Math.abs(dragX) > 5 && targetCategory && (
-            <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-30 transition-all pointer-events-none">
-              <div
-                className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold shadow-xl backdrop-blur-md border flex items-center gap-1.5 whitespace-nowrap animate-in zoom-in-95 duration-150 ${
-                  Math.abs(dragX) >= dragThreshold
-                    ? "bg-blue-600 text-white border-blue-400 shadow-blue-500/40 ring-2 ring-blue-400/50"
-                    : "bg-background/95 text-foreground border-border shadow-md"
-                }`}
-              >
-                {dragX < 0 ? (
-                  <ChevronRight className="w-4 h-4 animate-pulse text-blue-400" />
-                ) : (
-                  <ChevronLeft className="w-4 h-4 animate-pulse text-blue-400" />
-                )}
-                <span>
-                  {Math.abs(dragX) >= dragThreshold
-                    ? `✨ 손을 떼면 '${targetCategory.label}'(으)로 전환됩니다!`
-                    : `'${targetCategory.label}' 전환 중... (${Math.round(
-                        (Math.abs(dragX) / dragThreshold) * 100
-                      )}%)`}
-                </span>
-              </div>
-            </div>
-          )}
-
           <div
             onTouchStart={handleDeviceTouchStart}
             onTouchMove={handleDeviceTouchMove}
