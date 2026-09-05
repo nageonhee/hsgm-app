@@ -231,20 +231,21 @@ export default function DynamicDashboard() {
           >
             {/* 메인 원형 기기 그래픽 및 완벽한 원형 빛 후광 */}
             <div className="relative flex items-center justify-center">
-              {/* 원형 전방향 빛 후광 */}
+              {/* 원형 전방향 빛 후광 (아이콘 뒤쪽 z-0) */}
               <div
-                className={`absolute -inset-1.5 sm:-inset-2 rounded-full blur-md transition-all duration-500 pointer-events-none ${
+                className={`absolute -inset-2 sm:-inset-2.5 rounded-full blur-md transition-all duration-500 pointer-events-none z-0 ${
                   activeDevice.status
-                    ? "bg-blue-500/30 scale-100 opacity-100"
+                    ? "bg-blue-500/25 scale-100 opacity-100"
                     : "bg-transparent scale-90 opacity-0"
                 }`}
               />
 
+              {/* 메인 원형 기기 본체 (불투명 bg-card 및 z-10으로 빛 위에 얹혀 내부 빛 침범 차단) */}
               <div
-                className={`relative w-48 h-48 sm:w-64 sm:h-64 rounded-full border transition-all duration-300 flex items-center justify-center shadow-inner ${
+                className={`relative z-10 w-48 h-48 sm:w-64 sm:h-64 rounded-full border transition-all duration-300 flex items-center justify-center bg-card shadow-sm ${
                   activeDevice.status
-                    ? "border-blue-500/50 bg-gradient-to-b from-blue-500/10 via-muted/30 to-muted/80 shadow-[0_0_16px_rgba(59,130,246,0.25)]"
-                    : "border-border/70 bg-gradient-to-b from-muted/20 to-muted/60 opacity-80"
+                    ? "border-blue-500/40"
+                    : "border-border/70 opacity-80"
                 }`}
               >
                 {renderDeviceIcon(activeDevice.category || selectedCategory)}
