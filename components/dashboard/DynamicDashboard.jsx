@@ -229,28 +229,39 @@ export default function DynamicDashboard() {
             }}
             className="flex flex-col items-center space-y-3 sm:space-y-4 w-full"
           >
-            {/* 메인 원형 기기 그래픽 */}
-            <div
-              className={`relative w-48 h-48 sm:w-64 sm:h-64 rounded-full border transition-all duration-300 flex items-center justify-center shadow-inner ${
-                activeDevice.status
-                  ? "border-blue-500/50 bg-gradient-to-b from-blue-500/10 via-muted/30 to-muted/80 shadow-[0_0_18px_rgba(59,130,246,0.3)]"
-                  : "border-border/70 bg-gradient-to-b from-muted/20 to-muted/60 opacity-80"
-              }`}
-            >
-              {renderDeviceIcon(activeDevice.category || selectedCategory)}
+            {/* 메인 원형 기기 그래픽 및 완벽한 원형 빛 후광 */}
+            <div className="relative flex items-center justify-center">
+              {/* 원형 전방향 빛 후광 */}
+              <div
+                className={`absolute -inset-1.5 sm:-inset-2 rounded-full blur-md transition-all duration-500 pointer-events-none ${
+                  activeDevice.status
+                    ? "bg-blue-500/30 scale-100 opacity-100"
+                    : "bg-transparent scale-90 opacity-0"
+                }`}
+              />
 
-              {/* 하단 실시간 소비전력 뱃지 */}
-              <div className="absolute -bottom-3 bg-background border border-border px-3.5 py-1 rounded-full shadow-md flex items-center gap-2">
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    activeDevice.status ? "bg-blue-500 animate-pulse" : "bg-muted-foreground/50"
-                  }`}
-                />
-                <span className="text-xs font-mono font-bold text-foreground">
-                  {activeDevice.status
-                    ? `${activeDevice.currentPower ?? activeDevice.current_power ?? 0} W`
-                    : "대기전력 0 W"}
-                </span>
+              <div
+                className={`relative w-48 h-48 sm:w-64 sm:h-64 rounded-full border transition-all duration-300 flex items-center justify-center shadow-inner ${
+                  activeDevice.status
+                    ? "border-blue-500/50 bg-gradient-to-b from-blue-500/10 via-muted/30 to-muted/80 shadow-[0_0_16px_rgba(59,130,246,0.25)]"
+                    : "border-border/70 bg-gradient-to-b from-muted/20 to-muted/60 opacity-80"
+                }`}
+              >
+                {renderDeviceIcon(activeDevice.category || selectedCategory)}
+
+                {/* 하단 실시간 소비전력 뱃지 */}
+                <div className="absolute -bottom-3 bg-background border border-border px-3.5 py-1 rounded-full shadow-md flex items-center gap-2">
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      activeDevice.status ? "bg-blue-500 animate-pulse" : "bg-muted-foreground/50"
+                    }`}
+                  />
+                  <span className="text-xs font-mono font-bold text-foreground">
+                    {activeDevice.status
+                      ? `${activeDevice.currentPower ?? activeDevice.current_power ?? 0} W`
+                      : "대기전력 0 W"}
+                  </span>
+                </div>
               </div>
             </div>
 
