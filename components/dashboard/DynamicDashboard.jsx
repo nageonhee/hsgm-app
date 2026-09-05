@@ -222,14 +222,6 @@ export default function DynamicDashboard() {
           onTouchEnd={handleDeviceTouchEnd}
           className="w-full relative flex flex-col items-center justify-center space-y-3 sm:space-y-4 py-2 select-none touch-none cursor-grab active:cursor-grabbing"
         >
-          {/* 화면 좌우 양끝 스와이프 안내 화살표 */}
-          <div className="absolute left-0.5 top-1/2 -translate-y-1/2 text-muted-foreground/30 flex items-center pointer-events-none">
-            <ChevronLeft className="w-6 h-6 animate-pulse" />
-          </div>
-          <div className="absolute right-0.5 top-1/2 -translate-y-1/2 text-muted-foreground/30 flex items-center pointer-events-none">
-            <ChevronRight className="w-6 h-6 animate-pulse" />
-          </div>
-
           <div
             style={{
               transform: `translateX(${dragX}px) rotate(${dragX * 0.04}deg)`,
