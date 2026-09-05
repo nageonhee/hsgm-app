@@ -26,7 +26,7 @@
 ## ✨ 핵심 기능 (Key Features)
 
 ### 1. 🏠 미니멀 홈 대시보드 (`/dashboard`)
-- **로보락 스타일 딥 블랙 테마**: 순수 딥 블랙(`#000000`) 배경에 일렉트릭 블루 액센트를 적용한 프리미엄 UI (라이트 모드 완벽 호환 및 와트 뱃지 색상 자동 연동).
+- **딥 블랙 테마**: 순수 딥 블랙(`#000000`) 배경에 일렉트릭 블루 액센트를 적용한 프리미엄 UI (라이트 모드 완벽 호환 및 와트 뱃지 색상 자동 연동).
 - **원(₩) 단위 요금 중심 표기**: 난해한 W/kWh 대신 **`₩35,600 /월`** 형태로 직관적인 예상 요금 표시.
 - **인터랙티브 기기 히어로 뷰어**: 가전 종류별 실시간 전력 상태 조회 및 개별 제어.
 - **스마트 핀(Pin) 기능**: 메인에 고정할 기기를 선택할 수 있으며, 고정된 기기가 없을 경우 전력 소모량(요금) 1위 기기를 자동으로 노출.
@@ -157,20 +157,37 @@ HSGM/
 
 ## 🚀 시작하기 (Getting Started)
 
-### 1. 의존성 설치
+### 1. 환경 변수 설정 (`.env.local`)
+루트 디렉토리에 `.env.local` 파일을 생성하거나 `.env.example`을 복사하여 아래 설정 값을 작성합니다:
+```env
+# Gemini API Key 및 사용할 AI 모델 지정 (기본값: gemini-3.6-flash)
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-3.6-flash
+
+# Supabase 연동 (선택 사항)
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
+
+### 2. 의존성 설치
 ```bash
 npm install
 ```
 
-### 2. 개발 서버 실행
+### 3. 개발 서버 실행
 ```bash
 npm run dev
 ```
 
 브라우저에서 `http://localhost:3000`으로 접속하여 웹앱을 확인할 수 있습니다.
 
-### 3. 프로덕션 빌드
-```bash
-npm run build
-npm run start
-```
+### 4. Vercel 배포 (Deployment)
+
+1. GitHub 레포지토리에 소스 코드를 푸시합니다.
+2. [Vercel Dashboard](https://vercel.com)에 로그인 후 **Import Project**를 통해 해당 레포지토리를 연결합니다.
+3. **Environment Variables** 설정 섹션에 아래 변수들을 등록합니다:
+   - `GEMINI_API_KEY`: Google Gemini API Key
+   - `GEMINI_MODEL`: `gemini-3.6-flash` (또는 원하는 Gemini 모델)
+   - `NEXT_PUBLIC_SUPABASE_URL`: (선택) Supabase URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: (선택) Supabase Anon Key
+4. **Deploy** 버튼을 누르면 자동 빌드 및 배포가 완료됩니다.

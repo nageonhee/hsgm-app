@@ -1,4 +1,8 @@
-export const runtime = "edge";
+import fs from 'fs';
+import path from 'path';
+
+// Node.js 환경에서 fs 모듈을 사용해 프롬프트 파일을 읽어오기 위해 edge 런타임을 제거합니다.
+// export const runtime = "edge";
 
 export async function POST(req) {
   try {
@@ -28,18 +32,15 @@ export async function POST(req) {
             .join("\n")
         : "등록된 가전 없음";
 
-    // 2. 시스템 프롬프트 지침
-    const systemPrompt = `당신은 HSGM 스마트홈 가전 에너지 관리 및 A/S AI 어시스턴트입니다.
-현재 우리집 가전 실시간 현황:
-${deviceSummary}
-(실시간 총 소비전력: ${totalWatts}W / 가동 중인 기기: ${activeDevices.length}대)
-
-[규칙]
-1. 위 가전 현황 데이터를 기반으로 전기요금 질문에 구체적인 수치(원, W, kWh)를 들어 2~3문장으로 간결하고 전문적인 조언을 마크다운으로 작성하세요.
-2. 사용자가 고장/에러코드 진단을 요청하거나 에러 사진을 보내면 아래 JSON 포맷으로만 응답하세요:
-{"isDiagnosis": true, "diagnosisResult": {"code": "에러코드", "device": "기기명", "cause": "원인", "solution": "조치법", "phone": "1544-7777", "asUrl": "https://www.lge.co.kr/support"}}
-3. 사용자가 제품 명판/라벨 스캔을 요청하면 아래 JSON 포맷으로만 응답하세요:
-{"isRegistration": true, "registrationData": {"name": "기기명", "category": "air_conditioner", "brand": "제조사", "model": "모델명", "icon": "AirVent", "releaseEnergyGrade": 1, "releaseYear": "2024", "isSmartControl": true, "controlType": "wifi", "specs": {"powerConsumption": "1750W"}, "asInfo": {"phone": "1544-7777"}}}`;
+    // 2. 시스템 프롬프트 지침 동적 로딩
+    const promptPath = path.join(process.cwd(), 'prompts', 'coaching_prompt.md');
+    let systemPrompt = fs.readFileSync(promptPath, 'utf8');
+    
+    // 플레이스홀더 치환
+    systemPrompt = systemPrompt
+      .replace('{{DEVICE_SUMMARY}}', deviceSummary)
+      .replace('{{TOTAL_WATTS}}', totalWatts)
+      .replace('{{ACTIVE_COUNT}}', activeDevices.length);
 
     // 3. 컨텐츠 구성
     const parts = [];
@@ -58,12 +59,15 @@ ${deviceSummary}
       text: `${systemPrompt}\n\n사용자 질문: ${lastMessage || "현재 가전 상태를 점검해줘."}`,
     });
 
-    // 4. 구글 최신 권장 모델 순차 시도 (gemini-3.6-flash 우선 호출)
+    // 4. 구글 최신 권장 모델 순차 시도 (환경 변수 GEMINI_MODEL 우선 적용)
+    const envModel = process.env.GEMINI_MODEL;
     const targetModels = [
+      ...(envModel ? [envModel] : []),
       "gemini-3.6-flash",
-      "gemini-3.5-flash",
+      "gemini-3.6",
+      "gemini-1.5-flash",
       "gemini-2.0-flash",
-    ];
+    ].filter((v, i, a) => a.indexOf(v) === i);
 
     let replyText = "";
     let lastError = "";
@@ -104,7 +108,7 @@ ${deviceSummary}
         const chunks = replyText.split("");
         for (let i = 0; i < chunks.length; i++) {
           controller.enqueue(encoder.encode(chunks[i]));
-          await new Promise((r) => setTimeout(r, 6));
+          // 고의적인 지연(setTimeout)을 제거하여 즉각적으로 스트리밍되게 수정함
         }
         controller.close();
       },
