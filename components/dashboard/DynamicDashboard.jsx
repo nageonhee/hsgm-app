@@ -237,11 +237,11 @@ export default function DynamicDashboard() {
             }}
             className="flex flex-col items-center space-y-3 sm:space-y-4 w-full"
           >
-            {/* 후면 가동 상태 글로우 효과 */}
+            {/* 후면 가동 상태 글로우 효과 (은은하게 대폭 축소) */}
             <div
-              className={`absolute -inset-2 rounded-full blur-xl transition-all duration-500 opacity-60 ${
+              className={`absolute inset-1 rounded-full blur-md transition-all duration-500 opacity-25 pointer-events-none ${
                 activeDevice.status
-                  ? "bg-blue-500/30 scale-105"
+                  ? "bg-blue-500/20 scale-100"
                   : "bg-transparent scale-95"
               }`}
             />
