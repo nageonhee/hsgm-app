@@ -129,9 +129,9 @@ export default function DynamicDashboard() {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col items-center py-2 sm:py-4 px-3 sm:px-4 space-y-4 sm:space-y-6 animate-in fade-in duration-300">
+    <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center py-2 sm:py-4 px-3 sm:px-4 space-y-4 sm:space-y-6 my-auto animate-in fade-in duration-300">
       {/* 1. 상단 카테고리 칩 필터 */}
-      <div className="flex items-center gap-1.5 p-1.5 bg-muted/60 rounded-full border border-border shadow-xs overflow-x-auto max-w-full scrollbar-none">
+      <div className="flex items-center justify-center mx-auto gap-1.5 p-1.5 bg-muted/60 rounded-full border border-border shadow-xs overflow-x-auto max-w-full scrollbar-none">
         {availableCategories.map((cat) => {
           const isSelected = selectedCategory === cat.key;
           const hasActiveDevice = devices.some((d) => d.category === cat.key && d.status);
