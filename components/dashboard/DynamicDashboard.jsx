@@ -44,8 +44,19 @@ export default function DynamicDashboard() {
   const [isDragging, setIsDragging] = useState(false);
   const deviceTouchStartX = useRef(null);
   const deviceTouchStartY = useRef(null);
+  const categoryContainerRef = useRef(null);
 
   const availableCategories = DEFAULT_CATEGORIES;
+
+  // 카테고리 변경 시 해당 칩이 자동으로 중앙으로 스크롤되도록 설정
+  useEffect(() => {
+    if (categoryContainerRef.current) {
+      const activeBtn = categoryContainerRef.current.querySelector('[data-selected="true"]');
+      if (activeBtn) {
+        activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      }
+    }
+  }, [selectedCategory]);
 
   // 선택된 카테고리의 대표 기기 선정
   const activeDevice = useMemo(() => {
@@ -163,29 +174,44 @@ export default function DynamicDashboard() {
 
   return (
     <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center py-2 sm:py-4 px-3 sm:px-4 space-y-4 sm:space-y-6 my-auto animate-in fade-in duration-300">
-      {/* 1. 상단 카테고리 칩 필터 */}
-      <div className="flex items-center justify-center mx-auto gap-1.5 p-1.5 bg-muted/60 rounded-full border border-border shadow-xs overflow-x-auto max-w-full scrollbar-none">
-        {availableCategories.map((cat) => {
-          const isSelected = selectedCategory === cat.key;
-          const hasActiveDevice = devices.some((d) => d.category === cat.key && d.status);
+      {/* 1. 상단 카테고리 칩 필터 (페이지 스와이프 이벤트 차단 e.stopPropagation() + 반응형 가로 스크롤 및 중앙 자동 정렬) */}
+      <div
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+        className="relative w-full max-w-full sm:max-w-xl mx-auto px-1"
+      >
+        {/* 모바일 화면용 가로 스크롤 힌트 페이드 그래디언트 */}
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent z-10 sm:hidden" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent z-10 sm:hidden" />
 
-          return (
-            <button
-              key={cat.key}
-              onClick={() => setSelectedCategory(cat.key)}
-              className={`relative px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                isSelected
-                  ? "bg-background text-foreground shadow-sm font-bold"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {cat.label}
-              {hasActiveDevice && (
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-              )}
-            </button>
-          );
-        })}
+        <div
+          ref={categoryContainerRef}
+          className="flex items-center justify-start sm:justify-center gap-1.5 p-1.5 bg-muted/60 rounded-full border border-border shadow-xs overflow-x-auto max-w-full scrollbar-none touch-pan-x snap-x"
+        >
+          {availableCategories.map((cat) => {
+            const isSelected = selectedCategory === cat.key;
+            const hasActiveDevice = devices.some((d) => d.category === cat.key && d.status);
+
+            return (
+              <button
+                key={cat.key}
+                data-selected={isSelected ? "true" : "false"}
+                onClick={() => setSelectedCategory(cat.key)}
+                className={`relative px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 snap-center ${
+                  isSelected
+                    ? "bg-background text-foreground shadow-sm font-bold ring-1 ring-border"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                }`}
+              >
+                {cat.label}
+                {hasActiveDevice && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* 2. 중앙 대형 기기 그래픽 및 실시간 원터치 전원 제어 (손가락 추종 터치 드래그 + 실시간 스와이프 인식 배지) */}
