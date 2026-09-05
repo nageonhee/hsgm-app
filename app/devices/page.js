@@ -46,14 +46,22 @@ export default function DevicesPage() {
 
   const brands = ["ALL", "LG전자", "삼성전자", "다이슨", "쿠쿠전자", "로보락"];
 
-  const filteredDevices = devices.filter((d) => {
-    const matchesBrand = selectedBrand === "ALL" || d.brand === selectedBrand;
-    const matchesSearch =
-      d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.brand.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesBrand && matchesSearch;
-  });
+  const filteredDevices = devices
+    .filter((d) => {
+      const matchesBrand = selectedBrand === "ALL" || d.brand === selectedBrand;
+      const matchesSearch =
+        d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        d.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        d.brand.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesBrand && matchesSearch;
+    })
+    .sort((a, b) => {
+      const aIsIoT = (a.isSmartControl !== false) && a.category !== "refrigerator" && !a.isProtectedGuardrail;
+      const bIsIoT = (b.isSmartControl !== false) && b.category !== "refrigerator" && !b.isProtectedGuardrail;
+      if (aIsIoT && !bIsIoT) return -1;
+      if (!aIsIoT && bIsIoT) return 1;
+      return 0;
+    });
 
   return (
     <AppShell>
