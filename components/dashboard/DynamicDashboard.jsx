@@ -231,11 +231,11 @@ export default function DynamicDashboard() {
           >
             {/* 메인 원형 기기 그래픽 및 완벽한 원형 빛 후광 */}
             <div className="relative flex items-center justify-center">
-              {/* 원형 전방향 빛 후광 (아이콘 뒤쪽 z-0) */}
+              {/* 원형 전방향 빛 후광 (라이트 모드 대비 강화) */}
               <div
                 className={`absolute -inset-2 sm:-inset-2.5 rounded-full blur-md transition-all duration-500 pointer-events-none z-0 ${
                   activeDevice.status
-                    ? "bg-blue-500/25 scale-100 opacity-100"
+                    ? "bg-blue-500/55 dark:bg-blue-500/30 scale-100 opacity-100"
                     : "bg-transparent scale-90 opacity-0"
                 }`}
               />
@@ -244,7 +244,7 @@ export default function DynamicDashboard() {
               <div
                 className={`relative z-10 w-48 h-48 sm:w-64 sm:h-64 rounded-full border transition-all duration-300 flex items-center justify-center bg-card shadow-sm ${
                   activeDevice.status
-                    ? "border-blue-500/40"
+                    ? "border-blue-500/60 dark:border-blue-500/40"
                     : "border-border/70 opacity-80"
                 }`}
               >
