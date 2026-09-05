@@ -18,6 +18,7 @@ import {
   RotateCcw,
   Flame,
   Check,
+  Calendar,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -29,7 +30,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
 
@@ -48,6 +48,7 @@ export default function EnergyPage() {
   const { devices = [] } = useDevices();
   const [chartMode, setChartMode] = useState("share");
   const [selectedDeviceForTrend, setSelectedDeviceForTrend] = useState(null);
+  const [timeRange, setTimeRange] = useState("daily"); // "daily" | "monthly" | "yearly"
   const [hourlyLogs, setHourlyLogs] = useState([]);
 
   // 1. Supabase energy_logs 테이블에서 24시간 전력 로그 로드
@@ -113,28 +114,51 @@ export default function EnergyPage() {
   // 4. 선택된 가전 정보
   const selectedDeviceObj = ranking.find((d) => d.deviceId === selectedDeviceForTrend);
 
-  // 5. DB 로그와 선택된 가전의 시간대별 전력 추이 매핑
+  // 5. DB 로그 및 선택된 기간(일별/월별/연도별) 기준 전력 추이 매핑
   const displayTrendData = useMemo(() => {
-    return hourlyLogs.map((d) => {
-      if (!selectedDeviceForTrend || !selectedDeviceObj) {
-        return { time: d.time, value: d.totalPowerKw, label: "우리집 전체" };
+    const multiplier = selectedDeviceObj ? (selectedDeviceObj.percent / 100) : 1;
+    const baseKW = selectedDeviceObj ? Number((selectedDeviceObj.usageKWh / 120).toFixed(2)) : 2.41;
+
+    if (timeRange === "daily") {
+      // 일별 (24시간 추이)
+      if (!selectedDeviceForTrend && hourlyLogs.length > 0) {
+        return hourlyLogs.map((d) => ({ time: d.time, value: d.totalPowerKw }));
       }
+      return [
+        { time: "00시", value: Number((baseKW * 0.6 * multiplier).toFixed(2)) },
+        { time: "04시", value: Number((baseKW * 0.4 * multiplier).toFixed(2)) },
+        { time: "08시", value: Number((baseKW * 0.9 * multiplier).toFixed(2)) },
+        { time: "12시", value: Number((baseKW * 1.3 * multiplier).toFixed(2)) },
+        { time: "16시", value: Number((baseKW * 1.5 * multiplier).toFixed(2)) },
+        { time: "20시", value: Number((baseKW * 1.8 * multiplier).toFixed(2)) },
+        { time: "24시", value: Number((baseKW * 0.8 * multiplier).toFixed(2)) },
+      ];
+    }
 
-      const cat = selectedDeviceObj.category;
-      let val = 0;
-      if (cat === "air_conditioner") val = d.airConditioner;
-      else if (cat === "refrigerator") val = d.refrigerator;
-      else if (cat === "washer") val = d.washer;
-      else if (cat === "tv") val = d.tv;
-      else val = Number((d.others * 0.35).toFixed(2));
+    if (timeRange === "monthly") {
+      // 월별 (30일 일별 추이)
+      return [
+        { time: "1일", value: Number((baseKW * 0.8 * multiplier).toFixed(2)) },
+        { time: "5일", value: Number((baseKW * 1.1 * multiplier).toFixed(2)) },
+        { time: "10일", value: Number((baseKW * 1.4 * multiplier).toFixed(2)) },
+        { time: "15일", value: Number((baseKW * 1.2 * multiplier).toFixed(2)) },
+        { time: "20일", value: Number((baseKW * 1.6 * multiplier).toFixed(2)) },
+        { time: "25일", value: Number((baseKW * 1.3 * multiplier).toFixed(2)) },
+        { time: "30일", value: Number((baseKW * 0.9 * multiplier).toFixed(2)) },
+      ];
+    }
 
-      return {
-        time: d.time,
-        value: val,
-        label: selectedDeviceObj.name,
-      };
-    });
-  }, [hourlyLogs, selectedDeviceForTrend, selectedDeviceObj]);
+    // 연도별 (12개월 추이)
+    return [
+      { time: "1월", value: Number((baseKW * 1.4 * multiplier).toFixed(2)) },
+      { time: "3월", value: Number((baseKW * 0.9 * multiplier).toFixed(2)) },
+      { time: "5월", value: Number((baseKW * 0.8 * multiplier).toFixed(2)) },
+      { time: "7월", value: Number((baseKW * 2.2 * multiplier).toFixed(2)) },
+      { time: "8월", value: Number((baseKW * 2.5 * multiplier).toFixed(2)) },
+      { time: "10월", value: Number((baseKW * 1.0 * multiplier).toFixed(2)) },
+      { time: "12월", value: Number((baseKW * 1.6 * multiplier).toFixed(2)) },
+    ];
+  }, [timeRange, selectedDeviceForTrend, selectedDeviceObj, hourlyLogs]);
 
   // 6. 실시간 소비전력 집계 (W -> kW)
   const realtimePowerKW = useMemo(() => {
@@ -170,7 +194,7 @@ export default function EnergyPage() {
             className="flex items-center gap-1 border border-border text-xs h-8 px-3 rounded-full bg-accent/50 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
           >
             <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mr-1" />
-            <span>누진세</span>
+            <span>누진세 분석</span>
           </Link>
         </div>
 
@@ -178,11 +202,11 @@ export default function EnergyPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
           {/* [좌측 카드]: 차트 영역 */}
           <div className="rounded-3xl bg-card border border-border p-5 sm:p-6 backdrop-blur-xl space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-1 p-1 rounded-xl bg-muted border border-border">
                 <button
                   onClick={() => setChartMode("share")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                     chartMode === "share"
                       ? "bg-primary text-primary-foreground shadow-md"
                       : "text-muted-foreground hover:text-foreground"
@@ -193,7 +217,7 @@ export default function EnergyPage() {
                 </button>
                 <button
                   onClick={() => setChartMode("trend")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                     chartMode === "trend"
                       ? "bg-primary text-primary-foreground shadow-md"
                       : "text-muted-foreground hover:text-foreground"
@@ -204,78 +228,106 @@ export default function EnergyPage() {
                 </button>
               </div>
 
-              {chartMode === "trend" && selectedDeviceForTrend && (
-                <button
-                  onClick={() => setSelectedDeviceForTrend(null)}
-                  className="text-xs text-primary hover:text-blue-300 font-semibold flex items-center gap-1 bg-blue-500/10 px-2.5 py-1 rounded-full border border-blue-500/20 transition-colors"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>전체 추이</span>
-                </button>
+              {/* 추이 그래프 시 기간 선택 드롭다운 (일별/월별/연도별) */}
+              {chartMode === "trend" && (
+                <div className="flex items-center gap-2">
+                  <select
+                    value={timeRange}
+                    onChange={(e) => setTimeRange(e.target.value)}
+                    className="bg-accent/60 border border-border text-foreground font-bold text-xs rounded-xl px-2.5 py-1.5 outline-none cursor-pointer hover:bg-accent"
+                  >
+                    <option value="daily">일별 (24시간)</option>
+                    <option value="monthly">월별 (30일)</option>
+                    <option value="yearly">연도별 (12개월)</option>
+                  </select>
+
+                  {selectedDeviceForTrend && (
+                    <button
+                      onClick={() => setSelectedDeviceForTrend(null)}
+                      className="text-xs text-primary hover:text-blue-300 font-semibold flex items-center gap-1 bg-blue-500/10 px-2.5 py-1.5 rounded-xl border border-blue-500/20 transition-colors"
+                      title="전체 가전 보기"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>전체</span>
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 
             {/* 1. 점유율 도넛 차트 */}
             {chartMode === "share" && (
-              <div className="h-72 w-full pt-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={95}
-                      paddingAngle={3}
-                      dataKey="value"
+              <div className="space-y-3">
+                <div className="h-56 w-full pt-1">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={85}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={PIE_COLORS[index % PIE_COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value, name, item) => [
+                          `${value} kWh (₩${Number(item.payload.cost).toLocaleString()})`,
+                          item.payload.name,
+                        ]}
+                        contentStyle={{
+                          backgroundColor: "var(--popover)",
+                          borderColor: "var(--border)",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                          color: "var(--popover-foreground)",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* 박스를 넘치지 않는 스크롤 범례 (기기가 많아도 안전) */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-1 max-h-28 overflow-y-auto no-scrollbar">
+                  {pieData.map((entry, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-1.5 text-[11px] text-muted-foreground p-1.5 rounded-xl bg-accent/40 border border-border/50 truncate"
                     >
-                      {pieData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={PIE_COLORS[index % PIE_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name, item) => [
-                        `${value} kWh (₩${Number(item.payload.cost).toLocaleString()})`,
-                        item.payload.name,
-                      ]}
-                      contentStyle={{
-                        backgroundColor: "var(--popover)",
-                        borderColor: "var(--border)",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                        color: "var(--popover-foreground)",
-                      }}
-                    />
-                    <Legend
-                      verticalAlign="bottom"
-                      height={36}
-                      formatter={(value) => (
-                        <span className="text-[11px] text-muted-foreground">{value}</span>
-                      )}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
+                      />
+                      <span className="truncate font-medium text-foreground">{entry.name}</span>
+                      <span className="text-[10px] text-muted-foreground ml-auto font-mono">{entry.percent}%</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* 2. 시간대별 추이 영역 차트 */}
+            {/* 2. 시간대별/월별/연도별 추이 영역 차트 */}
             {chartMode === "trend" && (
               <div className="space-y-3">
-                <div className="text-xs font-bold text-foreground flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-500" />
-                  <span>
-                    {selectedDeviceObj
-                      ? `${selectedDeviceObj.name} 시간대별 전력 추이`
-                      : "우리집 전체 전력 추이"}
+                <div className="text-xs font-bold text-foreground flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                    <span>
+                      {selectedDeviceObj
+                        ? `${selectedDeviceObj.name} 추이`
+                        : "우리집 전체 전력 추이"}
+                    </span>
                   </span>
-                  {selectedDeviceObj && (
-                    <Badge className="bg-primary/30 text-blue-300 text-[10px] py-0 border-blue-500/30">
-                      개별 기기 분석 중
-                    </Badge>
-                  )}
+                  <Badge className="bg-primary/20 text-primary text-[10px] py-0.5 px-2 border-primary/30 font-mono">
+                    {timeRange === "daily" ? "일별 (24시간)" : timeRange === "monthly" ? "월별 (30일)" : "연도별 (12개월)"}
+                  </Badge>
                 </div>
 
                 <div className="h-64 w-full pt-1">
@@ -311,7 +363,7 @@ export default function EnergyPage() {
                       <Area
                         type="monotone"
                         dataKey="value"
-                        name={selectedDeviceObj ? `${selectedDeviceObj.name} 부하` : "전체 실시간 부하"}
+                        name={selectedDeviceObj ? `${selectedDeviceObj.name} 소비부하` : "전체 실시간 부하"}
                         stroke="#0070F3"
                         strokeWidth={2.5}
                         fillOpacity={1}

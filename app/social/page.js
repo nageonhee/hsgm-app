@@ -1,14 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
+import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import {
-  Users,
-  Zap,
-  CheckCircle2,
-  RefreshCw,
-} from "lucide-react";
+import { Users, RefreshCw } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -18,14 +12,11 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import socialData from "@/data/social.json";
 
 export default function SocialPage() {
-  const [drJoined, setDrJoined] = useState(true);
-  const { neighborComparison, nationalDR, oldApplianceROI } = socialData;
-
+  const { neighborComparison, oldApplianceROI } = socialData;
   const barData = neighborComparison.monthlyComparison;
   const oldDevice = oldApplianceROI[0];
 
@@ -42,44 +33,7 @@ export default function SocialPage() {
           </Badge>
         </div>
 
-        {/* ── 1. 국민 DR (에너지 쉼표) 참여 카드 ── */}
-        <div className="rounded-3xl bg-card border border-border p-5 backdrop-blur-xl space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-xs font-bold text-primary block mb-1">
-                {nationalDR.activeEvent.title}
-              </span>
-              <h2 className="text-base font-bold text-foreground">
-                피크 시간 절전 인센티브
-              </h2>
-            </div>
-
-            <div className="text-right">
-              <span className="text-[10px] text-muted-foreground block">내 포인트</span>
-              <span className="font-mono font-extrabold text-base sm:text-lg text-foreground">
-                {nationalDR.accumulatedPoints.toLocaleString()} P
-              </span>
-            </div>
-          </div>
-
-          <div className="p-3 rounded-2xl bg-muted border border-border flex items-center justify-between text-xs">
-            <span className="text-muted-foreground text-[11px] truncate max-w-[200px]">
-              {nationalDR.activeEvent.suggestedAction}
-            </span>
-            <button
-              onClick={() => setDrJoined(!drJoined)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                drJoined
-                  ? "bg-primary text-primary-foreground shadow-md"
-                  : "bg-accent text-muted-foreground"
-              }`}
-            >
-              {drJoined ? "참여 중" : "참여하기"}
-            </button>
-          </div>
-        </div>
-
-        {/* ── 2. 이웃(동일 32평형) 비교 바 차트 ── */}
+        {/* ── 1. 이웃(동일 32평형) 비교 바 차트 ── */}
         <div className="rounded-3xl bg-card border border-border p-5 backdrop-blur-xl space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -118,7 +72,7 @@ export default function SocialPage() {
           </div>
         </div>
 
-        {/* ── 3. 노후 가전 교체 ROI 분석 ── */}
+        {/* ── 2. 노후 가전 교체 ROI 분석 ── */}
         <div className="rounded-3xl bg-card border border-border p-5 backdrop-blur-xl space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
