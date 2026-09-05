@@ -6,7 +6,7 @@ import path from 'path';
 
 export async function POST(req) {
   try {
-    const { image } = await req.json();
+    const { image, answers } = await req.json();
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -26,9 +26,14 @@ export async function POST(req) {
     const mimeType = image.split(";")[0].split(":")[1] || "image/jpeg";
     const base64Data = image.split(",")[1];
 
-    // 2단계 파이프라인(Human-in-the-loop) 프롬프트를 외부 파일에서 동적으로 불러옴
+    // 대화형 계층 탐색(Narrow-down) 프롬프트 로드
     const promptPath = path.join(process.cwd(), 'prompts', 'device_scan_prompt.md');
-    const systemPrompt = fs.readFileSync(promptPath, 'utf8');
+    let promptContent = fs.readFileSync(promptPath, 'utf8');
+
+    // 사용자의 이전 단계 응답이 있으면 프롬프트에 컨텍스트로 추가 주입
+    if (answers && Object.keys(answers).length > 0) {
+      promptContent += `\n\n[사용자의 이전 단계 답변 내역 (User Answers)]:\n${JSON.stringify(answers, null, 2)}\n\n위 답변들을 바탕으로 다음으로 좁힐 세부 질문(nextQuestion)을 만들거나, 충분히 특정되었다면 isFinal: true로 최종 상세 제원과 성능을 완성하세요.`;
+    }
 
     const envModel = process.env.GEMINI_MODEL;
     const targetModels = [
@@ -53,7 +58,7 @@ export async function POST(req) {
                 {
                   parts: [
                     { inlineData: { mimeType, data: base64Data } },
-                    { text: systemPrompt },
+                    { text: promptContent },
                   ],
                 },
               ],

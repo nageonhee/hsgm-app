@@ -20,6 +20,11 @@ import {
   Eye,
   FileText,
   Sliders,
+  ChevronRight,
+  HelpCircle,
+  Laptop,
+  Check,
+  CornerDownRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,19 +33,23 @@ export default function AddDevicePage() {
   const router = useRouter();
   const { addDevice } = useDevices();
 
-  const [step, setStep] = useState("select_scan"); // "select_scan" | "scanning" | "human_in_the_loop" | "final_confirm"
+  // step: "select_scan" | "scanning" | "refining" | "final_confirm"
+  const [step, setStep] = useState("select_scan");
   const [capturedImage, setCapturedImage] = useState(null);
   const [scanProgressText, setScanProgressText] = useState("AI 비전 모델 초기화 중...");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  // 대화형 계층 탐색(Narrow-down) 상태
+  const [accumulatedAnswers, setAccumulatedAnswers] = useState({});
+  const [refineHistory, setRefineHistory] = useState([]);
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [customInputText, setCustomInputText] = useState("");
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
   // AI 분석 결과 및 수동 편집 상태
   const [analyzedDevice, setAnalyzedDevice] = useState(null);
   const [isManualMode, setIsManualMode] = useState(false);
-  
-  // 대화형 선택지 (Human-in-the-loop) 상태
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [resolvedSpecs, setResolvedSpecs] = useState({});
 
   const videoRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -115,7 +124,9 @@ export default function AddDevicePage() {
     stopCamera();
     const optimized = await resizeImage(rawData);
     setCapturedImage(optimized);
-    runRealAiScan(optimized);
+    setAccumulatedAnswers({});
+    setRefineHistory([]);
+    runAiScan(optimized, {});
   };
 
   // 갤러리 파일 업로드
@@ -127,13 +138,15 @@ export default function AddDevicePage() {
       reader.onload = async (event) => {
         const optimized = await resizeImage(event.target.result);
         setCapturedImage(optimized);
-        runRealAiScan(optimized);
+        setAccumulatedAnswers({});
+        setRefineHistory([]);
+        runAiScan(optimized, {});
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // [심사위원 평가용] 공인 규격 샘플 라벨 실시간 캔버스 렌더링
+  // [심사위원 평가용] 샘플 라벨/외형 실시간 테스트
   const handleSampleTest = (type) => {
     stopCamera();
     const canvas = document.createElement("canvas");
@@ -141,96 +154,147 @@ export default function AddDevicePage() {
     canvas.height = 700;
     const ctx = canvas.getContext("2d");
 
-    // 라벨 배경
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = "#1E293B";
     ctx.lineWidth = 6;
     ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
 
-    // 상단 타이틀
     ctx.fillStyle = "#0F172A";
     ctx.font = "bold 32px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("에너지소비효율등급", canvas.width / 2, 70);
+    ctx.fillText("스마트 기기 외형 / 에너지 라벨", canvas.width / 2, 70);
 
-    // 등급 원형 배지 (1등급)
-    ctx.beginPath();
-    ctx.arc(canvas.width / 2, 170, 70, 0, Math.PI * 2);
-    ctx.fillStyle = "#10B981";
-    ctx.fill();
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 65px sans-serif";
-    ctx.fillText("1", canvas.width / 2, 192);
-    ctx.font = "bold 20px sans-serif";
-    ctx.fillText("등급", canvas.width / 2, 220);
+    if (type === "laptop") {
+      // 노트북 외형 샘플
+      ctx.beginPath();
+      ctx.roundRect(80, 150, 440, 260, 16);
+      ctx.fillStyle = "#1E293B";
+      ctx.fill();
 
-    // 라벨 상세 텍스트
-    ctx.fillStyle = "#1E293B";
-    ctx.textAlign = "left";
-    ctx.font = "bold 22px sans-serif";
+      ctx.beginPath();
+      ctx.roundRect(100, 170, 400, 220, 8);
+      ctx.fillStyle = "#38BDF8";
+      ctx.fill();
 
-    if (type === "aircon") {
+      ctx.beginPath();
+      ctx.roundRect(50, 420, 500, 180, 12);
+      ctx.fillStyle = "#64748B";
+      ctx.fill();
+
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 20px sans-serif";
+      ctx.fillText("Samsung / LG Laptop Visual", canvas.width / 2, 280);
+    } else if (type === "aircon") {
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, 170, 70, 0, Math.PI * 2);
+      ctx.fillStyle = "#10B981";
+      ctx.fill();
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 65px sans-serif";
+      ctx.fillText("1", canvas.width / 2, 192);
+      ctx.font = "bold 20px sans-serif";
+      ctx.fillText("등급", canvas.width / 2, 220);
+
+      ctx.fillStyle = "#1E293B";
+      ctx.textAlign = "left";
+      ctx.font = "bold 22px sans-serif";
       ctx.fillText("모델명: AF19TX772VFN (스탠드 에어컨)", 50, 310);
       ctx.fillText("제조자명: 삼성전자(주)", 50, 360);
       ctx.fillText("정격 냉방 소비전력: 1750 W", 50, 410);
       ctx.fillText("월간 소비전력량: 165.4 kWh/월", 50, 460);
-      ctx.fillText("에너지비용: 45,000 원/월", 50, 510);
-      ctx.fillText("출시년월: 2024.03", 50, 560);
+      ctx.fillText("출시년월: 2024.03", 50, 510);
     } else {
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, 170, 70, 0, Math.PI * 2);
+      ctx.fillStyle = "#10B981";
+      ctx.fill();
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 65px sans-serif";
+      ctx.fillText("1", canvas.width / 2, 192);
+      ctx.font = "bold 20px sans-serif";
+      ctx.fillText("등급", canvas.width / 2, 220);
+
+      ctx.fillStyle = "#1E293B";
+      ctx.textAlign = "left";
+      ctx.font = "bold 22px sans-serif";
       ctx.fillText("모델명: F24VDD (인공지능 세탁기)", 50, 310);
       ctx.fillText("제조자명: LG전자(주)", 50, 360);
       ctx.fillText("정격 소비전력: 450 W", 50, 410);
-      ctx.fillText("1회 세탁시 소비전력량: 0.45 kWh", 50, 460);
-      ctx.fillText("월간 소비전력량: 32.5 kWh/월", 50, 510);
-      ctx.fillText("출시년월: 2024.01", 50, 560);
+      ctx.fillText("월간 소비전력량: 32.5 kWh/월", 50, 460);
+      ctx.fillText("출시년월: 2024.01", 50, 510);
     }
-
-    ctx.font = "16px sans-serif";
-    ctx.fillStyle = "#64748B";
-    ctx.fillText("한국에너지공단 검증 규격 표준 라벨", 50, 630);
 
     const sampleBase64 = canvas.toDataURL("image/jpeg", 0.9);
     setCapturedImage(sampleBase64);
-    runRealAiScan(sampleBase64);
+    setAccumulatedAnswers({});
+    setRefineHistory([]);
+    runAiScan(sampleBase64, {});
   };
 
-  // 실제 Gemini Vision API 통신
-  const runRealAiScan = async (base64Image) => {
+  // AI 분석 및 계층적 좁혀가기 API 호출
+  const runAiScan = async (base64Image, answers = {}) => {
+    const isFirstScan = Object.keys(answers).length === 0;
     setStep("scanning");
     setErrorMessage("");
-    setScanProgressText("이미지 전송 및 Google Gemini Vision 모델 연결 중...");
 
-    const timer = setTimeout(() => {
-      setScanProgressText("사진 속 가전 외형 및 라벨 텍스트(OCR) 정밀 판독 중...");
-    }, 1200);
+    if (isFirstScan) {
+      setScanProgressText("이미지 전송 및 Google Gemini Vision 모델 연결 중...");
+    } else {
+      setScanProgressText("사용자 선택을 반영하여 세부 모델 및 성능 스펙을 좁혀가는 중...");
+    }
 
     try {
       const res = await fetch("/api/devices/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64Image }),
+        body: JSON.stringify({ image: base64Image, answers }),
       });
 
-      clearTimeout(timer);
       const data = await res.json();
 
       if (!res.ok || !data.success) {
         throw new Error(data.error || "가전 정보를 식별하지 못했습니다.");
       }
 
-      setAnalyzedDevice(data);
-      setIsManualMode(false);
-      
-      if (data.needsMoreInfo && data.needsMoreInfo.length > 0) {
-        setCurrentQuestionIndex(0);
-        setResolvedSpecs({});
-        setStep("human_in_the_loop");
-      } else {
+      // 1. 모델이 특정되어 최종 확정된 경우 (isFinal === true)
+      if (data.isFinal || (!data.nextQuestion && !data.needsMoreInfo)) {
+        setAnalyzedDevice(data);
+        setIsManualMode(false);
         setStep("final_confirm");
+        return;
       }
+
+      // 2. 추가 질문이 있는 경우 (isFinal === false && nextQuestion)
+      if (data.nextQuestion) {
+        setCurrentQuestion(data.nextQuestion);
+        setAnalyzedDevice(data.temporaryDevice || data);
+        setShowCustomInput(false);
+        setCustomInputText("");
+        setStep("refining");
+        return;
+      }
+
+      // 3. 레거시 needsMoreInfo 포맷 호환
+      if (data.needsMoreInfo && data.needsMoreInfo.length > 0) {
+        const firstQ = data.needsMoreInfo[0];
+        setCurrentQuestion({
+          key: firstQ.key,
+          step: 1,
+          totalExpectedSteps: data.needsMoreInfo.length,
+          title: firstQ.question,
+          description: "정확한 모델을 특정하기 위해 세부 사양을 선택해주세요.",
+          options: firstQ.options,
+        });
+        setAnalyzedDevice(data);
+        setStep("refining");
+        return;
+      }
+
+      // 기본 fallback: 최종 확인 이동
+      setAnalyzedDevice(data);
+      setStep("final_confirm");
     } catch (err) {
-      clearTimeout(timer);
       console.error("Scan Error:", err);
       setErrorMessage(
         err.message || "이미지 분석에 실패했습니다. 아래 [수동 입력]을 통해 바로 등록하실 수 있습니다."
@@ -239,12 +303,44 @@ export default function AddDevicePage() {
     }
   };
 
+  // 질문에 대한 답변 선택 시 -> 누적 후 다음 단계 질의 실행
+  const handleSelectAnswer = (optionText) => {
+    if (!currentQuestion) return;
+
+    const newAnswers = {
+      ...accumulatedAnswers,
+      [currentQuestion.key]: optionText,
+    };
+
+    const newHistory = [
+      ...refineHistory,
+      {
+        key: currentQuestion.key,
+        title: currentQuestion.title,
+        answer: optionText,
+      },
+    ];
+
+    setAccumulatedAnswers(newAnswers);
+    setRefineHistory(newHistory);
+
+    // 다음 좁혀가기 단계 실행
+    runAiScan(capturedImage, newAnswers);
+  };
+
+  // 직접 입력 제출
+  const handleCustomSubmit = (e) => {
+    e?.preventDefault();
+    if (!customInputText.trim()) return;
+    handleSelectAnswer(customInputText.trim());
+  };
+
   // 수동 Fallback 폼 활성화
   const handleOpenManualForm = () => {
     stopCamera();
     setErrorMessage("");
     setAnalyzedDevice({
-      name: "스마트 가전",
+      name: "스마트 기기",
       brand: "삼성전자",
       model: "CUSTOM-" + Math.floor(1000 + Math.random() * 9000),
       category: "air_conditioner",
@@ -316,18 +412,19 @@ export default function AddDevicePage() {
               <span>가전 목록</span>
             </Link>
           </Button>
-          <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">
-            Google Gemini Vision AI
+          <Badge className="bg-primary/20 text-primary border-primary/30 text-xs flex items-center gap-1">
+            <Sparkles className="w-3 h-3" />
+            AI 대화형 스마트 스캔
           </Badge>
         </div>
 
         {/* 타이틀 */}
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight">
-            가전제품 사진 등록
+            스마트 가전/기기 사진 등록
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            에너지소비효율 라벨을 스캔하면 모델명과 한전 예상 전기요금을 자동 산출합니다.
+            사진을 찍으면 AI가 큰 범주에서 세부 모델명까지 좁혀가며 정확한 성능과 전기요금을 자동 조회합니다.
           </p>
         </div>
 
@@ -355,32 +452,39 @@ export default function AddDevicePage() {
         {/* ── STEP 1: 촬영 / 업로드 / 심사위원 원클릭 테스트 ── */}
         {step === "select_scan" && (
           <div className="space-y-4">
-            {/* 심사위원 전용 1초 샘플 라벨 테스트 배너 */}
+            {/* 심사위원 전용 1초 샘플 테스트 배너 */}
             <div className="p-4 rounded-3xl bg-gradient-to-r from-primary/15 via-primary/5 to-transparent border border-primary/30 space-y-2.5 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-extrabold text-primary flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5" />
-                  심사위원 평가용 실시간 AI OCR 원클릭 테스트
+                  심사위원 평가용 실시간 AI 계층 탐색 원클릭 테스트
                 </span>
-                <span className="text-[10px] text-muted-foreground">실물 가전 불필요</span>
+                <span className="text-[10px] text-muted-foreground">실물 불필요</span>
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                주변에 실물 가전이 없으신 경우, 표준 규격의 공인 에너지라벨을 1초 만에 생성해 실제 Gemini 모델의 실시간 OCR 판독을 즉시 테스트하실 수 있습니다.
+                실물 기기가 없으신 경우, 아래 버튼을 눌러 노트북/가전 외형을 즉시 분석하고 제조사-라인업-세부모델로 좁혀가는 AI 대화형 탐색을 바로 체험해보실 수 있습니다.
               </p>
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                <button
+                  onClick={() => handleSampleTest("laptop")}
+                  className="px-2.5 py-2 rounded-xl bg-background/80 hover:bg-background border border-primary/40 text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <Laptop className="w-3.5 h-3.5 text-sky-500" />
+                  <span>노트북 외형 테스트</span>
+                </button>
                 <button
                   onClick={() => handleSampleTest("aircon")}
-                  className="px-3 py-2 rounded-xl bg-background/80 hover:bg-background border border-primary/40 text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                  className="px-2.5 py-2 rounded-xl bg-background/80 hover:bg-background border border-primary/40 text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
                 >
                   <Zap className="w-3.5 h-3.5 text-blue-500" />
-                  삼성 무풍에어컨 라벨 테스트
+                  <span>무풍에어컨 테스트</span>
                 </button>
                 <button
                   onClick={() => handleSampleTest("washer")}
-                  className="px-3 py-2 rounded-xl bg-background/80 hover:bg-background border border-primary/40 text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                  className="px-2.5 py-2 rounded-xl bg-background/80 hover:bg-background border border-primary/40 text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
                 >
                   <Zap className="w-3.5 h-3.5 text-emerald-500" />
-                  LG 트롬세탁기 라벨 테스트
+                  <span>AI세탁기 테스트</span>
                 </button>
               </div>
             </div>
@@ -401,7 +505,7 @@ export default function AddDevicePage() {
                   <span className="w-5 h-5 border-t-2 border-r-2 border-primary rounded-tr" />
                 </div>
                 <div className="text-center bg-black/70 backdrop-blur-md px-3.5 py-1.5 rounded-full mx-auto text-primary text-xs font-semibold border border-primary/30">
-                  라벨 명판 또는 가전 외형을 사각 영역에 맞춰주세요
+                  라벨 명판 또는 제품 외형을 사각 영역에 맞춰주세요
                 </div>
                 <div className="flex justify-between">
                   <span className="w-5 h-5 border-b-2 border-l-2 border-primary rounded-bl" />
@@ -460,7 +564,7 @@ export default function AddDevicePage() {
 
             <div className="space-y-1.5">
               <h3 className="text-lg font-bold text-foreground">
-                Google Gemini Vision 실제 판독 중
+                Google Gemini AI 실시간 분석 & 추론 중
               </h3>
               <p className="text-xs sm:text-sm text-primary font-mono animate-pulse">
                 {scanProgressText}
@@ -469,80 +573,130 @@ export default function AddDevicePage() {
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground bg-accent/50 px-4 py-2 rounded-full border border-border">
               <Sparkles className="w-4 h-4 text-primary" />
-              사진 속 텍스트(OCR)와 실제 시각적 특징을 실시간 분석하고 있습니다
+              외형 특징과 사용자 응답을 조합해 실제 모델명과 성능을 좁혀갑니다
             </div>
           </div>
         )}
 
-        {/* ── STEP 2.5: 대화형 선택지 (Human-in-the-loop) ── */}
-        {step === "human_in_the_loop" && analyzedDevice?.needsMoreInfo && (
-          <div className="space-y-6 pt-4 animate-in slide-in-from-bottom-6 duration-500">
-            <div className="text-center space-y-2 pb-2">
-              <Badge className="bg-primary/20 text-primary border-primary/30 text-[11px]">AI 외형 분석 완료</Badge>
-              <h2 className="text-2xl font-extrabold text-foreground tracking-tight">추가 정보가 필요해요</h2>
-              <p className="text-sm text-muted-foreground">
-                외형만으로는 알 수 없는 상세 스펙을 선택해주세요. ({currentQuestionIndex + 1}/{analyzedDevice.needsMoreInfo.length})
-              </p>
-            </div>
-
-            <div className="bg-card border border-border p-6 rounded-3xl shadow-xl space-y-6">
-              <h3 className="text-lg font-bold text-foreground text-center">
-                {analyzedDevice.needsMoreInfo[currentQuestionIndex].question}
-              </h3>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {analyzedDevice.needsMoreInfo[currentQuestionIndex].options.map((opt, idx) => (
-                  <Button
-                    key={idx}
-                    variant="outline"
-                    className="h-14 justify-start text-left font-semibold text-sm px-5 border-border hover:border-primary hover:bg-primary/10 transition-all shadow-sm"
-                    onClick={() => {
-                      const currentQ = analyzedDevice.needsMoreInfo[currentQuestionIndex];
-                      const newResolved = { ...resolvedSpecs, [currentQ.key]: opt };
-                      setResolvedSpecs(newResolved);
-                      
-                      if (currentQuestionIndex + 1 < analyzedDevice.needsMoreInfo.length) {
-                        setCurrentQuestionIndex(currentQuestionIndex + 1);
-                      } else {
-                        // 모든 질문 답변 완료 -> 기기 정보에 병합 후 최종 확인으로 이동
-                        const finalDevice = { ...analyzedDevice };
-                        
-                        if (newResolved.brand) finalDevice.brand = newResolved.brand;
-                        
-                        finalDevice.specs = {
-                          ...finalDevice.specs,
-                          ...newResolved
-                        };
-                        
-                        // 후보 모델이 있으면 첫 번째 것을 임시 할당
-                        if (!finalDevice.model && finalDevice.candidateModels?.length > 0) {
-                           finalDevice.model = finalDevice.candidateModels[0] + " (예상)";
-                        }
-
-                        // 사용자 답변 기반 시각 요약 업데이트
-                        finalDevice.visionSummary = finalDevice.visionSummary + " + 사용자 답변 기반 모델 추론됨";
-
-                        setAnalyzedDevice(finalDevice);
-                        setStep("final_confirm");
-                      }
-                    }}
-                  >
-                    {opt}
-                  </Button>
+        {/* ── STEP 2.5: 대화형 점진적 좁혀가기 (Interactive Narrow-down) ── */}
+        {step === "refining" && currentQuestion && (
+          <div className="space-y-6 pt-2 animate-in slide-in-from-bottom-6 duration-500">
+            {/* 상단 브레드크럼 (지금까지 좁혀온 단계 요약) */}
+            {refineHistory.length > 0 && (
+              <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-bold text-muted-foreground shrink-0">좁혀온 내역:</span>
+                {refineHistory.map((hist, idx) => (
+                  <React.Fragment key={idx}>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs px-2.5 py-0.5 gap-1 font-bold">
+                      <Check className="w-3 h-3" />
+                      {hist.answer}
+                    </Badge>
+                    {idx < refineHistory.length - 1 && (
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
+                    )}
+                  </React.Fragment>
                 ))}
+              </div>
+            )}
+
+            {/* 메인 질문 카드 (한 번에 1개의 질문만 순차 제시) */}
+            <div className="bg-card border border-border p-6 sm:p-7 rounded-3xl shadow-xl space-y-6">
+              <div className="text-center space-y-2 pb-1">
+                <div className="flex items-center justify-center gap-1.5">
+                  <Badge className="bg-primary/20 text-primary border-primary/30 text-[11px] font-bold">
+                    {currentQuestion.step ? `Step ${currentQuestion.step}` : "AI 탐색"}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground font-semibold">1단계씩 세부 좁혀가기</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+                  {currentQuestion.title}
+                </h2>
+                {currentQuestion.description && (
+                  <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+                    {currentQuestion.description}
+                  </p>
+                )}
+              </div>
+
+              {/* 1. 객관식 선택지 그리드 */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-muted-foreground block px-1">객관식 추천 선택지</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {currentQuestion.options
+                    ?.filter((opt) => !opt.includes("직접 입력"))
+                    .map((opt, idx) => (
+                      <Button
+                        key={idx}
+                        variant="outline"
+                        className="h-13 justify-start text-left font-bold text-xs sm:text-sm px-4 border-border hover:border-primary hover:bg-primary/10 transition-all shadow-xs group"
+                        onClick={() => handleSelectAnswer(opt)}
+                      >
+                        <CornerDownRight className="w-4 h-4 text-primary mr-2.5 shrink-0 group-hover:translate-x-1 transition-transform" />
+                        <span className="truncate">{opt}</span>
+                      </Button>
+                    ))}
+                </div>
+              </div>
+
+              {/* 2. 상시 직접 타이핑 가능한 입력 칸 */}
+              <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5 text-primary" />
+                    원하는 항목이 목록에 없나요? 직접 타이핑하기
+                  </span>
+                </div>
+                <form onSubmit={handleCustomSubmit} className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="예: 삼성전자, 갤럭시북4 프로, 16인치..."
+                    value={customInputText}
+                    onChange={(e) => setCustomInputText(e.target.value)}
+                    className="flex-1 h-11 px-3.5 rounded-xl bg-background border border-border text-foreground text-xs font-bold focus:border-primary outline-none"
+                  />
+                  <Button
+                    type="submit"
+                    disabled={!customInputText.trim()}
+                    className="h-11 px-5 rounded-xl font-bold text-xs shrink-0"
+                  >
+                    입력 완료
+                  </Button>
+                </form>
+              </div>
+
+              {/* 하단 다시 스캔 / 수동 폼 버튼 */}
+              <div className="pt-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                <button
+                  onClick={() => {
+                    setStep("select_scan");
+                    setAccumulatedAnswers({});
+                    setRefineHistory([]);
+                    startCamera();
+                  }}
+                  className="hover:text-foreground flex items-center gap-1 font-semibold"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  처음부터 다시 촬영
+                </button>
+                <button
+                  onClick={handleOpenManualForm}
+                  className="hover:text-primary font-semibold"
+                >
+                  수동으로 전체 스펙 입력 ➔
+                </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* ── STEP 3: 정돈된 AI 판독 결과 & 제원 대조 (최적화 뷰) ── */}
+        {/* ── STEP 3: 정돈된 AI 판독 결과 & 제원 대조 (최종 확인) ── */}
         {step === "final_confirm" && analyzedDevice && (
           <div className="space-y-5">
             {/* 상단 타이틀 & 모드 전환 */}
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[11px] font-semibold">
-                  AI 비전 자동 판독 완료
+                  AI 비전 & 스펙 매핑 완료
                 </Badge>
                 <h2 className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight">
                   제원 확인 및 에너지 진단
@@ -563,17 +717,17 @@ export default function AddDevicePage() {
             {/* 메인 비주얼 카드: 원본 라벨(좌) + AI 제원 요약(우) 콤팩트 2단 배치 */}
             <div className="rounded-3xl bg-card border border-border overflow-hidden shadow-xs">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-0">
-                {/* 좌측: 원본 라벨 이미지 */}
+                {/* 좌측: 원본 라벨/사진 이미지 */}
                 {capturedImage && (
                   <div className="md:col-span-5 bg-muted/40 p-4 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-border">
                     <span className="text-[11px] font-bold text-muted-foreground self-start mb-2 flex items-center gap-1.5">
                       <Eye className="w-3.5 h-3.5 text-primary" />
-                      스캔된 라벨 원본
+                      스캔된 원본 사진
                     </span>
                     <div className="w-full max-w-[200px] md:max-w-[220px] rounded-2xl overflow-hidden border border-border/80 shadow-md bg-white">
                       <img
                         src={capturedImage}
-                        alt="Captured Label"
+                        alt="Captured Device"
                         className="w-full h-auto object-contain block"
                       />
                     </div>
@@ -592,12 +746,12 @@ export default function AddDevicePage() {
                         {analyzedDevice.name}
                       </h3>
                       <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                        {analyzedDevice.model}
+                        모델명: {analyzedDevice.model || "식별 완료"}
                       </p>
                     </div>
 
                     <Badge className="bg-emerald-500 text-white font-extrabold text-xs px-2.5 py-0.5 shadow-xs">
-                      {analyzedDevice.energyGrade ? `에너지 ${analyzedDevice.energyGrade}등급` : "등급 미표기"}
+                      {analyzedDevice.energyGrade ? `에너지 ${analyzedDevice.energyGrade}등급` : "표준 등급"}
                     </Badge>
                   </div>
 
@@ -607,7 +761,7 @@ export default function AddDevicePage() {
                       <div className="p-3 rounded-2xl bg-muted/50 border border-border/50">
                         <span className="text-muted-foreground text-[11px] block">정격 소비전력</span>
                         <strong className="text-foreground text-sm font-bold mt-0.5 block">
-                          {analyzedDevice.power || "미표기"}
+                          {analyzedDevice.power || "공칭 표준"}
                         </strong>
                       </div>
 
@@ -626,12 +780,24 @@ export default function AddDevicePage() {
                           ₩ {Number(analyzedDevice.monthlyCost || 0).toLocaleString()}원
                         </strong>
                       </div>
+
+                      {analyzedDevice.specs && (
+                        <div className="col-span-2 p-3 rounded-2xl bg-muted/30 border border-border/40 space-y-1">
+                          <span className="text-[10px] font-bold text-muted-foreground block">매핑된 주요 사양</span>
+                          {Object.entries(analyzedDevice.specs).slice(0, 3).map(([k, v]) => (
+                            <div key={k} className="flex justify-between text-[11px]">
+                              <span className="text-muted-foreground capitalize">{k}:</span>
+                              <span className="font-semibold text-foreground truncate ml-2">{v}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-3 text-xs">
                       <div className="grid grid-cols-2 gap-2.5">
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold text-muted-foreground">가전 명칭</label>
+                          <label className="text-[11px] font-bold text-muted-foreground">기기 명칭</label>
                           <input
                             type="text"
                             value={analyzedDevice.name}
@@ -676,13 +842,13 @@ export default function AddDevicePage() {
                     </div>
                   )}
 
-                  {/* 부가 안내 */}
+                  {/* A/S 센터 안내 */}
                   <div className="pt-2 text-[11px] text-muted-foreground flex items-center justify-between border-t border-border/60">
                     <span className="flex items-center gap-1">
                       <Wrench className="w-3.5 h-3.5 text-primary" />
                       {analyzedDevice.asInfo?.center || "공식 A/S 센터"} 자동 연동
                     </span>
-                    <span className="font-mono">{analyzedDevice.asInfo?.phone}</span>
+                    <span className="font-mono">{analyzedDevice.asInfo?.phone || "1588-3366"}</span>
                   </div>
                 </div>
               </div>
@@ -695,6 +861,8 @@ export default function AddDevicePage() {
                 disabled={isSubmitting}
                 onClick={() => {
                   setStep("select_scan");
+                  setAccumulatedAnswers({});
+                  setRefineHistory([]);
                   startCamera();
                 }}
                 className="flex-1 h-12 rounded-2xl border-border gap-1.5 font-bold text-xs"
