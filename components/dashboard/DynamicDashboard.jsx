@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useDevices } from "@/contexts/DeviceContext";
 import { calculateKepcoBill } from "@/lib/energyCalculator";
@@ -17,6 +17,7 @@ import {
   Star,
   Plus,
   ShieldCheck,
+  ChevronLeft,
   ChevronRight,
   Activity,
   TrendingUp,
@@ -38,6 +39,9 @@ const DEFAULT_CATEGORIES = [
 export default function DynamicDashboard() {
   const { devices = [], toggleDeviceStatus, togglePinDevice } = useDevices();
   const [selectedCategory, setSelectedCategory] = useState("air_conditioner");
+
+  const deviceTouchStartX = useRef(null);
+  const deviceTouchStartY = useRef(null);
 
   // 등록된 기기들에서 실제로 존재하는 카테고리들을 동적으로 탭에 반영
   const availableCategories = useMemo(() => {
@@ -100,6 +104,36 @@ export default function DynamicDashboard() {
     return Math.round((totalActiveWatts / 1000) * 214.6);
   }, [totalActiveWatts]);
 
+  const handleDeviceTouchStart = (e) => {
+    e.stopPropagation();
+    deviceTouchStartX.current = e.touches[0].clientX;
+    deviceTouchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleDeviceTouchEnd = (e) => {
+    e.stopPropagation();
+    if (deviceTouchStartX.current === null || deviceTouchStartY.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - deviceTouchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - deviceTouchStartY.current;
+    deviceTouchStartX.current = null;
+    deviceTouchStartY.current = null;
+
+    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+      const currentIndex = availableCategories.findIndex((c) => c.key === selectedCategory);
+      if (currentIndex === -1) return;
+
+      if (deltaX < 0) {
+        // 왼쪽으로 스와이프 -> 다음 기기 카테고리
+        const nextIdx = (currentIndex + 1) % availableCategories.length;
+        setSelectedCategory(availableCategories[nextIdx].key);
+      } else {
+        // 오른쪽으로 스와이프 -> 이전 기기 카테고리
+        const prevIdx = (currentIndex - 1 + availableCategories.length) % availableCategories.length;
+        setSelectedCategory(availableCategories[prevIdx].key);
+      }
+    }
+  };
+
   // 홈 즐겨찾기(Pin) 기기 목록
   const pinnedDevices = useMemo(() => {
     return devices.filter((d) => d.isPinned);
@@ -155,10 +189,22 @@ export default function DynamicDashboard() {
         })}
       </div>
 
-      {/* 2. 중앙 대형 기기 그래픽 및 실시간 원터치 전원 제어 */}
+      {/* 2. 중앙 대형 기기 그래픽 및 실시간 원터치 전원 제어 (좌우 스와이프 시 기기 전환) */}
       {activeDevice ? (
         <div className="flex flex-col items-center space-y-3 sm:space-y-4">
-          <div className="relative group">
+          <div
+            onTouchStart={handleDeviceTouchStart}
+            onTouchEnd={handleDeviceTouchEnd}
+            className="relative group cursor-grab active:cursor-grabbing select-none"
+          >
+            {/* 좌우 스와이프 안내 화살표 */}
+            <div className="absolute -left-6 top-1/2 -translate-y-1/2 text-muted-foreground/40 hidden sm:flex items-center pointer-events-none">
+              <ChevronLeft className="w-5 h-5 animate-pulse" />
+            </div>
+            <div className="absolute -right-6 top-1/2 -translate-y-1/2 text-muted-foreground/40 hidden sm:flex items-center pointer-events-none">
+              <ChevronRight className="w-5 h-5 animate-pulse" />
+            </div>
+
             {/* 후면 가동 상태 글로우 효과 */}
             <div
               className={`absolute -inset-2 rounded-full blur-xl transition-all duration-500 opacity-60 ${

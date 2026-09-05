@@ -120,14 +120,14 @@ export default function DevicesPage() {
             return (
               <div
                 key={device.id}
-                className={`relative flex flex-col justify-between rounded-3xl p-5 sm:p-6 border transition-all duration-200 ${
+                className={`relative flex flex-col justify-between rounded-3xl p-4 sm:p-5 border transition-all duration-200 ${
                   isOn
                     ? "bg-card/90 border-primary/30 shadow-xl shadow-primary/20"
                     : "bg-card/40 border-border opacity-80 hover:opacity-100"
                 }`}
               >
                 {/* Top Row: Brand, Grade & Power Switch */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide mr-1">
                       {device.brand}
@@ -157,7 +157,7 @@ export default function DevicesPage() {
 
                   <button
                     onClick={() => toggleDeviceStatus(device.id)}
-                    className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center shrink-0 transition-all ${
                       isFridgeGuardrail
                         ? "bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30"
                         : isOn
@@ -167,23 +167,23 @@ export default function DevicesPage() {
                     title={isFridgeGuardrail ? "냉장고 24시간 가동 필수 (전원 차단 불가)" : isOn ? "전원 끄기" : "전원 켜기"}
                   >
                     {isFridgeGuardrail ? (
-                      <ShieldCheck className="w-5 h-5 stroke-[2.2]" />
+                      <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
                     ) : (
-                      <Power className="w-5 h-5 stroke-[2.5]" />
+                      <Power className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
                     )}
                   </button>
                 </div>
 
                 {/* Device Icon + Name + Model */}
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-accent/50 border border-border flex items-center justify-center text-foreground shrink-0">
-                    <Icon className="w-6 h-6" />
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-2xl bg-accent/50 border border-border flex items-center justify-center text-foreground shrink-0">
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-base text-foreground leading-snug">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-sm sm:text-base text-foreground leading-snug truncate">
                       {device.name}
                     </h3>
-                    <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                    <p className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">
                       모델명: {device.model}
                     </p>
                   </div>
@@ -191,18 +191,18 @@ export default function DevicesPage() {
 
                 {/* Key Specs Pills */}
                 {device.specs && (
-                  <div className="p-3 rounded-2xl bg-muted/50 border border-border text-xs space-y-1 mb-4">
+                  <div className="p-2.5 rounded-2xl bg-muted/50 border border-border text-xs space-y-1 mb-3">
                     {Object.entries(device.specs).slice(0, 2).map(([key, val]) => (
                       <div key={key} className="flex justify-between text-[11px]">
                         <span className="text-muted-foreground capitalize">{key}:</span>
-                        <span className="font-medium text-foreground">{val}</span>
+                        <span className="font-medium text-foreground truncate ml-2">{val}</span>
                       </div>
                     ))}
                   </div>
                 )}
 
                 {/* Energy Grades (출시 당시 vs 현행 환산) */}
-                <div className="flex items-center gap-1.5 mb-3 text-[11px]">
+                <div className="flex items-center gap-1.5 flex-wrap mb-3 text-[10px] sm:text-[11px]">
                   <span className="px-2 py-0.5 rounded-lg bg-muted border border-border text-foreground">
                     {device.releaseYear || "출시"}년 기준 {device.releaseEnergyGrade || 1}등급
                   </span>

@@ -10,7 +10,7 @@ export const metadata = {
 export default function DashboardPage() {
   return (
     <AppShell>
-      <div className="w-full flex-1 flex flex-col items-center justify-center my-auto">
+      <div className="w-full flex-1 flex flex-col items-center justify-center my-auto py-2">
         <DynamicDashboard />
       </div>
     </AppShell>
