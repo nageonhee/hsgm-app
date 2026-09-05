@@ -122,7 +122,7 @@ export default function DevicesPage() {
                 key={device.id}
                 className={`relative flex flex-col justify-between rounded-3xl p-4 sm:p-5 border transition-all duration-200 ${
                   isOn
-                    ? "bg-card/90 border-primary/30 shadow-xl shadow-primary/20"
+                    ? "bg-card/90 border-primary/30 shadow-[0_0_8px_rgba(59,130,246,0.25)]"
                     : "bg-card/40 border-border opacity-80 hover:opacity-100"
                 }`}
               >

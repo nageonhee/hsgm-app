@@ -229,11 +229,11 @@ export default function DynamicDashboard() {
             }}
             className="flex flex-col items-center space-y-3 sm:space-y-4 w-full"
           >
-            {/* 후면 가동 상태 글로우 효과 (은은하게 대폭 축소) */}
+            {/* 후면 가동 상태 글로우 효과 (전방향 최소 범위 블러) */}
             <div
-              className={`absolute inset-1 rounded-full blur-md transition-all duration-500 opacity-25 pointer-events-none ${
+              className={`absolute inset-0 rounded-full blur-xs transition-all duration-500 opacity-20 pointer-events-none ${
                 activeDevice.status
-                  ? "bg-blue-500/20 scale-100"
+                  ? "bg-blue-500/25 scale-100"
                   : "bg-transparent scale-95"
               }`}
             />
@@ -242,7 +242,7 @@ export default function DynamicDashboard() {
             <div
               className={`relative w-48 h-48 sm:w-64 sm:h-64 rounded-full border transition-all duration-300 flex items-center justify-center shadow-inner ${
                 activeDevice.status
-                  ? "border-blue-500/50 bg-gradient-to-b from-blue-500/10 via-muted/30 to-muted/80 shadow-blue-500/10"
+                  ? "border-blue-500/50 bg-gradient-to-b from-blue-500/10 via-muted/30 to-muted/80 shadow-[0_0_8px_rgba(59,130,246,0.15)]"
                   : "border-border/70 bg-gradient-to-b from-muted/20 to-muted/60 opacity-80"
               }`}
             >
