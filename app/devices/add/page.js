@@ -259,7 +259,25 @@ export default function AddDevicePage() {
         throw new Error(data.error || "가전 정보를 식별하지 못했습니다.");
       }
 
-      // 1. RAG 대화형 역질문이 필요한 경우
+      // 1. 모델이 특정되어 최종 확정된 경우 (isFinal: true)
+      if (data.isFinal || (data.status === "complete" && data.device)) {
+        setAnalyzedDevice(data.device || data);
+        setIsManualMode(false);
+        setStep("final_confirm");
+        return;
+      }
+
+      // 2. 추가 좁혀가기 질문이 있는 경우 (nextQuestion)
+      if (data.nextQuestion) {
+        setCurrentQuestion(data.nextQuestion);
+        setAnalyzedDevice(data.temporaryDevice || data);
+        setShowCustomInput(false);
+        setCustomInputText("");
+        setStep("refining");
+        return;
+      }
+
+      // 3. RAG 대화형 역질문이 필요한 경우
       if (data.status === "needs_clarification") {
         setCurrentQuestion({
           key: "subModelChoice",
@@ -272,24 +290,6 @@ export default function AddDevicePage() {
           partialDevice: data.partialDevice,
         });
         setAnalyzedDevice(data.partialDevice || data);
-        setShowCustomInput(false);
-        setCustomInputText("");
-        setStep("refining");
-        return;
-      }
-
-      // 2. 최종 확정된 경우 (RAG 매칭 완료 또는 스캔 완료)
-      if (data.status === "complete" && data.device) {
-        setAnalyzedDevice(data.device);
-        setIsManualMode(false);
-        setStep("final_confirm");
-        return;
-      }
-
-      // 3. 기존 nextQuestion 포맷 호환
-      if (data.nextQuestion) {
-        setCurrentQuestion(data.nextQuestion);
-        setAnalyzedDevice(data.temporaryDevice || data);
         setShowCustomInput(false);
         setCustomInputText("");
         setStep("refining");
