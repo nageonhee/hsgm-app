@@ -259,15 +259,34 @@ export default function AddDevicePage() {
         throw new Error(data.error || "가전 정보를 식별하지 못했습니다.");
       }
 
-      // 1. 모델이 특정되어 최종 확정된 경우 (isFinal === true)
-      if (data.isFinal || (!data.nextQuestion && !data.needsMoreInfo)) {
-        setAnalyzedDevice(data);
+      // 1. RAG 대화형 역질문이 필요한 경우
+      if (data.status === "needs_clarification") {
+        setCurrentQuestion({
+          key: "subModelChoice",
+          step: 1,
+          totalExpectedSteps: 1,
+          title: data.question,
+          description: `${data.matchedBrand || "공인 제조사"} 한국에너지공단 표준 카탈로그에서 확인된 라인업입니다.`,
+          options: (data.options || []).map((o) => o.label || o.capacity || o.id),
+          rawOptions: data.options || [],
+          partialDevice: data.partialDevice,
+        });
+        setAnalyzedDevice(data.partialDevice || data);
+        setShowCustomInput(false);
+        setCustomInputText("");
+        setStep("refining");
+        return;
+      }
+
+      // 2. 최종 확정된 경우 (RAG 매칭 완료 또는 스캔 완료)
+      if (data.status === "complete" && data.device) {
+        setAnalyzedDevice(data.device);
         setIsManualMode(false);
         setStep("final_confirm");
         return;
       }
 
-      // 2. 추가 질문이 있는 경우 (isFinal === false && nextQuestion)
+      // 3. 기존 nextQuestion 포맷 호환
       if (data.nextQuestion) {
         setCurrentQuestion(data.nextQuestion);
         setAnalyzedDevice(data.temporaryDevice || data);
@@ -277,24 +296,8 @@ export default function AddDevicePage() {
         return;
       }
 
-      // 3. 레거시 needsMoreInfo 포맷 호환
-      if (data.needsMoreInfo && data.needsMoreInfo.length > 0) {
-        const firstQ = data.needsMoreInfo[0];
-        setCurrentQuestion({
-          key: firstQ.key,
-          step: 1,
-          totalExpectedSteps: data.needsMoreInfo.length,
-          title: firstQ.question,
-          description: "정확한 모델을 특정하기 위해 세부 사양을 선택해주세요.",
-          options: firstQ.options,
-        });
-        setAnalyzedDevice(data);
-        setStep("refining");
-        return;
-      }
-
       // 기본 fallback: 최종 확인 이동
-      setAnalyzedDevice(data);
+      setAnalyzedDevice(data.device || data);
       setStep("final_confirm");
     } catch (err) {
       console.error("Scan Error:", err);
@@ -305,19 +308,48 @@ export default function AddDevicePage() {
     }
   };
 
-  // 질문에 대한 답변 선택 시 -> 누적 후 다음 단계 질의 실행
-  const handleSelectAnswer = (optionText) => {
+  // 질문에 대한 답변 선택 시 -> RAG 공인 제원 즉시 바인딩 (0ms)
+  const handleSelectAnswer = async (optionText) => {
     if (!currentQuestion) return;
+
+    // RAG 공인 옵션 클릭 시 즉각 확정
+    const rawMatch = currentQuestion.rawOptions?.find(
+      (o) => (o.label || o.capacity || o.id) === optionText
+    );
+
+    if (rawMatch && currentQuestion.partialDevice) {
+      try {
+        setScanProgressText("한국에너지공단 공인 제원을 즉시 바인딩 중...");
+        setStep("scanning");
+        const res = await fetch("/api/devices/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            selectedOption: rawMatch,
+            partialDevice: currentQuestion.partialDevice,
+          }),
+        });
+        const data = await res.json();
+        if (data.success && data.device) {
+          setAnalyzedDevice(data.device);
+          setIsManualMode(false);
+          setStep("final_confirm");
+          return;
+        }
+      } catch (err) {
+        console.warn("즉시 바인딩 에러, 순차 스캔으로 전환:", err);
+      }
+    }
 
     const newAnswers = {
       ...accumulatedAnswers,
-      [currentQuestion.key]: optionText,
+      [currentQuestion.key || "choice"]: optionText,
     };
 
     const newHistory = [
       ...refineHistory,
       {
-        key: currentQuestion.key,
+        key: currentQuestion.key || "choice",
         title: currentQuestion.title,
         answer: optionText,
       },
@@ -326,7 +358,7 @@ export default function AddDevicePage() {
     setAccumulatedAnswers(newAnswers);
     setRefineHistory(newHistory);
 
-    // 다음 좁혀가기 단계 실행
+    // 다음 단계 실행
     runAiScan(capturedImage, newAnswers);
   };
 

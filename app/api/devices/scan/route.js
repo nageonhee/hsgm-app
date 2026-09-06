@@ -1,14 +1,32 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
+import { deviceMatcher } from "@/lib/rag/deviceMatcher";
 
-// Node.js 환경에서 fs 모듈을 사용해 프롬프트 파일을 읽어오기 위해 edge 런타임을 제거합니다.
-// export const runtime = "edge";
+export const dynamic = "force-dynamic";
 
 export async function POST(req) {
   try {
-    const { image, answers } = await req.json();
-    const apiKey = process.env.GEMINI_API_KEY;
+    const { image, answers, selectedOption, partialDevice } = await req.json();
 
+    // 1. 사용자가 이미 역질문 선택지를 클릭하여 최종 확정하는 경우 (API 호출 0회, 0ms 즉시 응답)
+    if (selectedOption && partialDevice) {
+      const mergedDev = deviceMatcher.buildFinalDevice(
+        { ...partialDevice, name: partialDevice.name || "스마트 가전" },
+        selectedOption,
+        { ...partialDevice, ...selectedOption }
+      );
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          status: "complete",
+          device: mergedDev,
+        }),
+        { headers: { "Content-Type": "application/json; charset=utf-8" } }
+      );
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return new Response(
         JSON.stringify({ success: false, error: "GEMINI_API_KEY가 설정되지 않았습니다." }),
@@ -26,14 +44,29 @@ export async function POST(req) {
     const mimeType = image.split(";")[0].split(":")[1] || "image/jpeg";
     const base64Data = image.split(",")[1];
 
-    // 대화형 계층 탐색(Narrow-down) 프롬프트 로드
-    const promptPath = path.join(process.cwd(), 'prompts', 'device_scan_prompt.md');
-    let promptContent = fs.readFileSync(promptPath, 'utf8');
+    // OCR 추출 프롬프트
+    const promptText = `
+너는 대한민국 가전제품 에너지 라벨 및 명판 OCR 전문가야.
+업로드된 사진에서 다음 항목을 JSON으로 정확히 추출해줘:
+1. brand: 제조사명 (예: 삼성전자, LG전자, 쿠쿠전자, 로보락, 다이슨 등)
+2. model: 모델명 (예: RF85C9001AP, FQ18VBDWC2, FX24GNB, CRP-LHTR1010FW, KQ75QND90AFXKR 등 명판에 적힌 정확한 영문/숫자 코드)
+3. name: 제품명 (예: 비스포크 4도어 냉장고, 휘센 타워 에어컨 등)
+4. category: air_conditioner | refrigerator | washer | tv | cooker | air_purifier | robot_cleaner 중 하나
+5. power: 정격 소비전력 (예: 1600W, 35.3kWh/월 등)
+6. energyGrade: 에너지소비효율등급 숫자 (1~5)
+7. releaseYear: 제조년월 또는 출시연도 (예: 2024)
 
-    // 사용자의 이전 단계 응답이 있으면 프롬프트에 컨텍스트로 추가 주입
-    if (answers && Object.keys(answers).length > 0) {
-      promptContent += `\n\n[사용자의 이전 단계 답변 내역 (User Answers)]:\n${JSON.stringify(answers, null, 2)}\n\n위 답변들을 바탕으로 다음으로 좁힐 세부 질문(nextQuestion)을 만들거나, 충분히 특정되었다면 isFinal: true로 최종 상세 제원과 성능을 완성하세요.`;
-    }
+반드시 순수 JSON 포맷으로만 응답해:
+{
+  "brand": "...",
+  "model": "...",
+  "name": "...",
+  "category": "...",
+  "power": "...",
+  "energyGrade": 1,
+  "releaseYear": "2024"
+}
+`;
 
     const envModel = process.env.GEMINI_MODEL;
     const targetModels = [
@@ -57,7 +90,7 @@ export async function POST(req) {
                 {
                   parts: [
                     { inlineData: { mimeType, data: base64Data } },
-                    { text: promptContent },
+                    { text: promptText },
                   ],
                 },
               ],
@@ -73,31 +106,38 @@ export async function POST(req) {
           const data = await res.json();
           rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (rawText) {
-            console.log(`[Gemini Vision ${model} 실제 판독 성공]:\n`, rawText);
+            console.log(`[Gemini OCR ${model} 판독 성공]:`, rawText);
             break;
           }
-        } else {
-          const err = await res.json();
-          console.warn(`[Gemini Vision ${model} 호출 실패]:`, err?.error?.message);
         }
       } catch (e) {
-        console.error(`[Gemini Vision ${model} 통신 오류]:`, e.message);
+        console.warn(`[Gemini Vision ${model} 통신 실패]:`, e.message);
       }
     }
 
-    if (!rawText) {
-      return new Response(
-        JSON.stringify({ success: false, error: "이미지 분석에 실패했습니다. 사진을 확인해 주세요." }),
-        { status: 500, headers: { "Content-Type": "application/json; charset=utf-8" } }
-      );
+    let extractedInfo = {};
+    if (rawText) {
+      try {
+        const cleanJson = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+        extractedInfo = JSON.parse(cleanJson);
+      } catch (e) {
+        console.warn("JSON 파싱 오류:", e);
+      }
     }
 
-    const cleanJson = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
-    const result = JSON.parse(cleanJson);
+    // 2. 한국에너지공단(KEA) + 공인 카탈로그 RAG 매칭 실행
+    const matched = await deviceMatcher.matchAppliance(extractedInfo);
 
-    return new Response(JSON.stringify(result), {
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-    });
+    // 3. 누락 슬롯 검사 및 역질문/선택지 생성
+    const result = deviceMatcher.generateClarificationOrFinal(extractedInfo, matched);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        ...result,
+      }),
+      { headers: { "Content-Type": "application/json; charset=utf-8" } }
+    );
   } catch (err) {
     console.error("Device Scan API Error:", err);
     return new Response(
