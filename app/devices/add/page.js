@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { useDevices } from "@/contexts/DeviceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Camera,
   Image as ImageIcon,
@@ -32,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 export default function AddDevicePage() {
   const router = useRouter();
   const { addDevice } = useDevices();
+  const { isDemoUser, user } = useAuth();
 
   // step: "select_scan" | "scanning" | "refining" | "final_confirm"
   const [step, setStep] = useState("select_scan");
@@ -495,39 +497,41 @@ export default function AddDevicePage() {
               </div>
             </div>
 
-            {/* 3. 최하단: 시연용 원클릭 테스트 배너 */}
-            <div className="p-4 rounded-3xl bg-muted/40 border border-border space-y-2.5 shadow-sm mt-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold text-muted-foreground flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-primary" />
-                  시연용 원클릭 테스트
-                </span>
-                <span className="text-[10px] text-muted-foreground">실물 사진 없이 테스트</span>
+            {/* 3. 최하단: 시연용 원클릭 테스트 배너 (시연용 계정 전용) */}
+            {(isDemoUser || user?.id?.startsWith("demo-")) && (
+              <div className="p-4 rounded-3xl bg-muted/40 border border-border space-y-2.5 shadow-sm mt-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold text-muted-foreground flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    시연용 원클릭 테스트
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">실물 사진 없이 테스트</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 pt-0.5">
+                  <button
+                    onClick={() => handleSampleTest("laptop")}
+                    className="px-2.5 py-2 rounded-xl bg-background hover:bg-accent border border-border text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                  >
+                    <Laptop className="w-3.5 h-3.5 text-sky-500" />
+                    <span>노트북 외형</span>
+                  </button>
+                  <button
+                    onClick={() => handleSampleTest("aircon")}
+                    className="px-2.5 py-2 rounded-xl bg-background hover:bg-accent border border-border text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-blue-500" />
+                    <span>무풍에어컨</span>
+                  </button>
+                  <button
+                    onClick={() => handleSampleTest("washer")}
+                    className="px-2.5 py-2 rounded-xl bg-background hover:bg-accent border border-border text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>AI세탁기</span>
+                  </button>
+                </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 pt-0.5">
-                <button
-                  onClick={() => handleSampleTest("laptop")}
-                  className="px-2.5 py-2 rounded-xl bg-background hover:bg-accent border border-border text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
-                >
-                  <Laptop className="w-3.5 h-3.5 text-sky-500" />
-                  <span>노트북 외형</span>
-                </button>
-                <button
-                  onClick={() => handleSampleTest("aircon")}
-                  className="px-2.5 py-2 rounded-xl bg-background hover:bg-accent border border-border text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
-                >
-                  <Zap className="w-3.5 h-3.5 text-blue-500" />
-                  <span>무풍에어컨</span>
-                </button>
-                <button
-                  onClick={() => handleSampleTest("washer")}
-                  className="px-2.5 py-2 rounded-xl bg-background hover:bg-accent border border-border text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
-                >
-                  <Zap className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>AI세탁기</span>
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
