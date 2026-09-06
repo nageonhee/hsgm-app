@@ -2,8 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { deviceService } from "@/services/deviceService";
+import { useAuth } from "@/contexts/AuthContext";
 
-// 심사위원 무마찰 체험 및 RLS 차단 대비 기본 고품질 프리셋 데이터 (총 7종)
+// 심사위원 무마찰 체험 및 데모 계정 전용 프리셋 데이터 (총 7종)
 export const DEFAULT_PRESET_DEVICES = [
   {
     id: "preset-aircon-01",
@@ -264,74 +265,172 @@ export const sortDevices = (list) => {
   });
 };
 
-const STORAGE_KEY = "hsgm_devices_v4";
-
 const DeviceContext = createContext(null);
 
 export function DeviceProvider({ children }) {
+  const { user, isDemoUser } = useAuth();
+  
+  // 0. 계정별 공간(Space) 목록 및 현재 선택된 공간 관리
+  const defaultSpaceName = user?.user_metadata?.name || "우리집";
+  const [spaces, setSpaces] = useState([defaultSpaceName]);
+  const [currentSpace, setCurrentSpaceState] = useState(defaultSpaceName);
+
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 로컬 스토리지 헬퍼
-  const saveLocalDevices = (updatedList) => {
+  // 계정별 공간 목록 로드 및 초기화
+  useEffect(() => {
+    if (!user) {
+      setSpaces(["우리집"]);
+      setCurrentSpaceState("우리집");
+      return;
+    }
+
+    const spacesKey = `hsgm_spaces_${user.id}`;
     if (typeof window !== "undefined") {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+        const raw = localStorage.getItem(spacesKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSpaces(parsed);
+            setCurrentSpaceState(parsed[0]);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("공간 목록 파싱 오류:", e);
+      }
+    }
+    const initial = [user?.user_metadata?.name || "우리집"];
+    setSpaces(initial);
+    setCurrentSpaceState(initial[0]);
+  }, [user]);
+
+  // 공간 전환 함수
+  const setCurrentSpace = useCallback((spaceName) => {
+    setCurrentSpaceState(spaceName);
+  }, []);
+
+  // 새 공간 추가 함수 (추가 시 해당 공간으로 자동 전환 및 독립 기기 DB 생성)
+  const addSpace = useCallback((newSpaceName) => {
+    if (!newSpaceName || !newSpaceName.trim()) return false;
+    const trimmed = newSpaceName.trim();
+    
+    setSpaces((prev) => {
+      const next = prev.includes(trimmed) ? prev : [...prev, trimmed];
+      if (user && typeof window !== "undefined") {
+        try {
+          localStorage.setItem(`hsgm_spaces_${user.id}`, JSON.stringify(next));
+        } catch (e) {
+          console.warn("공간 저장 실패:", e);
+        }
+      }
+      return next;
+    });
+
+    setCurrentSpaceState(trimmed);
+    return true;
+  }, [user]);
+
+  // 계정 및 공간별 고유 스토리지 키 생성
+  const getUserSpaceStorageKey = useCallback((uid, space = currentSpace) => {
+    const userPart = uid || "guest";
+    const spacePart = encodeURIComponent(space || "우리집");
+    return `hsgm_devices_${userPart}_${spacePart}`;
+  }, [currentSpace]);
+
+  // 로컬 스토리지 헬퍼
+  const saveLocalDevices = useCallback((updatedList, uid = user?.id, space = currentSpace) => {
+    if (typeof window !== "undefined") {
+      try {
+        const key = getUserSpaceStorageKey(uid, space);
+        localStorage.setItem(key, JSON.stringify(updatedList));
       } catch (e) {
         console.warn("로컬 스토리지 저장 실패:", e);
       }
     }
-  };
+  }, [getUserSpaceStorageKey, user?.id, currentSpace]);
 
-  // 1. 초기 가전 목록 로드
+  // 1. 유저 계정 및 공간별 가전 목록 로드
   const fetchDevices = useCallback(async () => {
-    // 1-A: 로컬 캐시가 있고 데이터가 2개 이상 유효하면 로드
+    if (!user) {
+      setDevices([]);
+      setLoading(false);
+      return;
+    }
+
+    const key = getUserSpaceStorageKey(user.id, currentSpace);
     let cached = null;
+    let hasCache = false;
     if (typeof window !== "undefined") {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
+        const raw = localStorage.getItem(key);
+        if (raw !== null) {
           cached = JSON.parse(raw);
+          hasCache = true;
         }
       } catch (e) {
         console.warn("로컬 캐시 파싱 에러:", e);
       }
     }
 
-    if (cached && Array.isArray(cached) && cached.length > 1) {
+    // 1-A: 유효한 계정+공간별 캐시가 존재하면 즉시 로드
+    if (hasCache && Array.isArray(cached)) {
       setDevices(sortDevices(cached));
       setLoading(false);
       return;
     }
 
-    // 1-B: 캐시가 없거나 1개 이하일 때 기본 프리셋 데모 데이터 주입
-    try {
-      const data = await deviceService.getDevices();
-      if (data && data.length > 1) {
-        const sorted = sortDevices(data);
-        setDevices(sorted);
-        saveLocalDevices(sorted);
-      } else {
-        const sortedPreset = sortDevices(DEFAULT_PRESET_DEVICES);
-        setDevices(sortedPreset);
-        saveLocalDevices(sortedPreset);
-      }
-    } catch (err) {
-      console.warn("Supabase 연결 제한 - 데모 프리셋으로 구동합니다:", err);
+    // 1-B: 데모 계정(demo-user-101)의 기본 "우리집" 공간에만 데모 프리셋 7종 제공
+    if (isDemoUser && (currentSpace === "우리집" || currentSpace === defaultSpaceName)) {
       const sortedPreset = sortDevices(DEFAULT_PRESET_DEVICES);
       setDevices(sortedPreset);
-      saveLocalDevices(sortedPreset);
+      saveLocalDevices(sortedPreset, user.id, currentSpace);
+      setLoading(false);
+      return;
+    }
+
+    // 1-C: 신규 생성된 공간 또는 실제 사용자 계정 -> Supabase DB에서 해당 user.id 기기 조회
+    try {
+      setLoading(true);
+      const data = await deviceService.getDevices(user.id);
+      // DB 기기 중 현재 공간과 일치하는 기기 필터링 (기본 공간이거나 space 속성이 일치)
+      const spaceDevices = Array.isArray(data)
+        ? data.filter((d) => (d.space || d.specs?.space || defaultSpaceName) === currentSpace)
+        : [];
+
+      if (spaceDevices.length > 0) {
+        const sorted = sortDevices(spaceDevices);
+        setDevices(sorted);
+        saveLocalDevices(sorted, user.id, currentSpace);
+      } else {
+        // 새 공간이거나 등록 기기가 없는 경우: 정확히 0개(빈 목록)로 시작
+        setDevices([]);
+        saveLocalDevices([], user.id, currentSpace);
+      }
+    } catch (err) {
+      console.warn("기기 목록 로드 완료 (0대):", err);
+      setDevices([]);
+      saveLocalDevices([], user.id, currentSpace);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user, isDemoUser, currentSpace, defaultSpaceName, getUserSpaceStorageKey, saveLocalDevices]);
 
   useEffect(() => {
     fetchDevices();
 
+    if (!user || isDemoUser) return;
+
     // 2. Supabase Realtime 웹소켓 실시간 구독
     const unsubscribe = deviceService.subscribeDevices((payload) => {
       const { eventType, new: newDevice, old: oldDevice } = payload;
+      if (newDevice?.user_id && newDevice.user_id !== user.id) return;
+      if (oldDevice?.user_id && oldDevice.user_id !== user.id) return;
+
+      const deviceSpace = newDevice?.space || newDevice?.specs?.space || defaultSpaceName;
+      if (deviceSpace !== currentSpace && oldDevice?.specs?.space !== currentSpace) return;
 
       setDevices((prev) => {
         let next = prev;
@@ -343,7 +442,7 @@ export function DeviceProvider({ children }) {
         } else if (eventType === "DELETE") {
           next = prev.filter((d) => d.id !== oldDevice?.id);
         }
-        saveLocalDevices(next);
+        saveLocalDevices(next, user.id, currentSpace);
         return next;
       });
     });
@@ -351,7 +450,7 @@ export function DeviceProvider({ children }) {
     return () => {
       if (typeof unsubscribe === "function") unsubscribe();
     };
-  }, [fetchDevices]);
+  }, [fetchDevices, user, isDemoUser, currentSpace, defaultSpaceName, saveLocalDevices]);
 
   // 3. 전원 온/오프 토글 함수
   const toggleDeviceStatus = async (id) => {
@@ -408,22 +507,28 @@ export function DeviceProvider({ children }) {
     });
   };
 
-  // 6. 가전 추가
-  const addDevice = async (deviceData, userId) => {
+  // 6. 가전 추가 (현재 선택된 공간에 귀속)
+  const addDevice = async (deviceData, explicitUserId = user?.id) => {
+    const targetUserId = explicitUserId || user?.id;
     const nowTime = Date.now();
     const enriched = {
       ...deviceData,
+      space: currentSpace,
+      specs: {
+        ...(deviceData.specs || {}),
+        space: currentSpace,
+      },
       createdAt: nowTime,
       isPinned: true,
     };
 
     try {
-      const newDevice = await deviceService.addDevice(enriched, userId);
+      const newDevice = await deviceService.addDevice(enriched, targetUserId);
       if (newDevice) {
-        const item = { ...newDevice, createdAt: nowTime, isPinned: true };
+        const item = { ...newDevice, space: currentSpace, createdAt: nowTime, isPinned: true };
         setDevices((prev) => {
           const next = sortDevices([...prev.filter((d) => d.id !== item.id), item]);
-          saveLocalDevices(next);
+          saveLocalDevices(next, targetUserId, currentSpace);
           return next;
         });
         return item;
@@ -438,18 +543,18 @@ export function DeviceProvider({ children }) {
       };
       setDevices((prev) => {
         const next = sortDevices([...prev, localDevice]);
-        saveLocalDevices(next);
+        saveLocalDevices(next, targetUserId, currentSpace);
         return next;
       });
       return localDevice;
     }
   };
 
-  // 7. 가전 삭제 (기기 상세 페이지 등에서 호출)
+  // 7. 가전 삭제
   const deleteDevice = async (id) => {
     setDevices((prev) => {
       const next = prev.filter((d) => d.id !== id);
-      saveLocalDevices(next);
+      saveLocalDevices(next, user?.id, currentSpace);
       return next;
     });
     try {
@@ -459,13 +564,37 @@ export function DeviceProvider({ children }) {
     }
   };
 
-  // 8. 시연 기본 프리셋 데이터 원상 복구
+  // 8. 시연 기본 프리셋 데이터 원상 복구 (데모 모드 또는 명시적 복원 시)
   const restoreDefaultDevices = () => {
     const sortedPreset = sortDevices(DEFAULT_PRESET_DEVICES);
     setDevices(sortedPreset);
-    saveLocalDevices(sortedPreset);
+    saveLocalDevices(sortedPreset, user?.id, currentSpace);
     return sortedPreset;
   };
+
+  return (
+    <DeviceContext.Provider
+      value={{
+        spaces,
+        currentSpace,
+        setCurrentSpace,
+        addSpace,
+        devices,
+        loading,
+        fetchDevices,
+        toggleDeviceStatus,
+        updateDeviceState,
+        togglePinDevice,
+        addDevice,
+        deleteDevice,
+        restoreDefaultDevices,
+        sortDevices,
+      }}
+    >
+      {children}
+    </DeviceContext.Provider>
+  );
+}
 
   return (
     <DeviceContext.Provider
