@@ -4,8 +4,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { deviceService } from "@/services/deviceService";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  enrichDevicesList,
-  recalculateDeviceGrade,
+  syncDevicesWithStandards,
+  evaluateDeviceGrade,
+  getActiveRevision,
   fetchServerYear,
   getDefaultYear,
 } from "@/lib/energyGrade";
@@ -368,13 +369,16 @@ export function DeviceProvider({ children }) {
     }
   }, [getUserSpaceStorageKey, user?.id, currentSpace]);
 
-  // 기준 연도 변경 시 현재 로드된 기기들의 에너지 등급 실시간 일괄 재계산
+  // 등급표 개정 시기(연도/고시버전) 변경 시에만 1회 확인하여 서버/스토리지에 영구 저장
   useEffect(() => {
     setDevices((prev) => {
       if (!prev || prev.length === 0) return prev;
-      const updated = enrichDevicesList(prev, currentYear);
-      saveLocalDevices(updated, user?.id, currentSpace);
-      return updated;
+      const { list, hasChanges } = syncDevicesWithStandards(prev, currentYear);
+      if (hasChanges) {
+        saveLocalDevices(list, user?.id, currentSpace);
+        return list;
+      }
+      return prev;
     });
   }, [currentYear, saveLocalDevices, user?.id, currentSpace]);
 
@@ -401,18 +405,21 @@ export function DeviceProvider({ children }) {
       }
     }
 
-    // 1-A: 유효한 계정+공간별 캐시가 존재하면 즉시 로드 (최신 연도 등급 적용)
+    // 1-A: 유효한 계정+공간별 캐시가 존재하면 로드 (개정판 변경 시에만 1회 동기화)
     if (hasCache && Array.isArray(cached)) {
-      const enrichedCached = enrichDevicesList(cached, currentYear);
-      setDevices(sortDevices(enrichedCached));
+      const { list, hasChanges } = syncDevicesWithStandards(cached, currentYear);
+      if (hasChanges) {
+        saveLocalDevices(list, user.id, currentSpace);
+      }
+      setDevices(sortDevices(list));
       setLoading(false);
       return;
     }
 
-    // 1-B: 데모 계정(demo-user-101)의 기본 "우리집" 공간에만 데모 프리셋 7종 제공 (최신 연도 등급 적용)
+    // 1-B: 데모 계정(demo-user-101)의 기본 "우리집" 공간에만 데모 프리셋 7종 제공
     if (isDemoUser && (currentSpace === "우리집" || currentSpace === defaultSpaceName)) {
-      const enrichedPresets = enrichDevicesList(DEFAULT_PRESET_DEVICES, currentYear);
-      const sortedPreset = sortDevices(enrichedPresets);
+      const { list } = syncDevicesWithStandards(DEFAULT_PRESET_DEVICES, currentYear);
+      const sortedPreset = sortDevices(list);
       setDevices(sortedPreset);
       saveLocalDevices(sortedPreset, user.id, currentSpace);
       setLoading(false);
@@ -429,10 +436,12 @@ export function DeviceProvider({ children }) {
         : [];
 
       if (spaceDevices.length > 0) {
-        const enriched = enrichDevicesList(spaceDevices, currentYear);
-        const sorted = sortDevices(enriched);
+        const { list, hasChanges } = syncDevicesWithStandards(spaceDevices, currentYear);
+        if (hasChanges) {
+          saveLocalDevices(list, user.id, currentSpace);
+        }
+        const sorted = sortDevices(list);
         setDevices(sorted);
-        saveLocalDevices(sorted, user.id, currentSpace);
       } else {
         // 새 공간이거나 등록 기기가 없는 경우: 정확히 0개(빈 목록)로 시작
         setDevices([]);
@@ -554,9 +563,9 @@ export function DeviceProvider({ children }) {
     try {
       const newDevice = await deviceService.addDevice(enriched, targetUserId);
       if (newDevice) {
-        const item = recalculateDeviceGrade(
+        const item = evaluateDeviceGrade(
           { ...newDevice, space: currentSpace, createdAt: nowTime, isPinned: true },
-          currentYear
+          getActiveRevision(currentYear)
         );
         setDevices((prev) => {
           const next = sortDevices([...prev.filter((d) => d.id !== item.id), item]);
@@ -567,14 +576,14 @@ export function DeviceProvider({ children }) {
       }
     } catch (err) {
       console.warn("DB 등록 제한(게스트/RLS) - 로컬 세션 기기로 등록합니다:", err);
-      const localDevice = recalculateDeviceGrade(
+      const localDevice = evaluateDeviceGrade(
         {
           id: "local-" + nowTime,
           ...enriched,
           status: false,
           currentPower: 0,
         },
-        currentYear
+        getActiveRevision(currentYear)
       );
       setDevices((prev) => {
         const next = sortDevices([...prev, localDevice]);
@@ -601,8 +610,8 @@ export function DeviceProvider({ children }) {
 
   // 8. 시연 기본 프리셋 데이터 원상 복구 (데모 모드 또는 명시적 복원 시)
   const restoreDefaultDevices = () => {
-    const enrichedPresets = enrichDevicesList(DEFAULT_PRESET_DEVICES, currentYear);
-    const sortedPreset = sortDevices(enrichedPresets);
+    const { list } = syncDevicesWithStandards(DEFAULT_PRESET_DEVICES, currentYear);
+    const sortedPreset = sortDevices(list);
     setDevices(sortedPreset);
     saveLocalDevices(sortedPreset, user?.id, currentSpace);
     return sortedPreset;
@@ -626,8 +635,8 @@ export function DeviceProvider({ children }) {
         deleteDevice,
         restoreDefaultDevices,
         sortDevices,
-        recalculateDeviceGrade,
-        enrichDevicesList,
+        evaluateDeviceGrade,
+        syncDevicesWithStandards,
       }}
     >
       {children}
