@@ -100,6 +100,27 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // 에러 메시지 한글화 헬퍼
+  const formatAuthError = (err) => {
+    const msg = err?.message || String(err);
+    if (msg.includes("Invalid login credentials")) {
+      return "이메일 또는 비밀번호가 일치하지 않습니다. (Supabase 가입 여부 및 비밀번호를 확인해주세요)";
+    }
+    if (msg.includes("Email not confirmed")) {
+      return "이메일 인증이 완료되지 않은 계정입니다. Supabase 대시보드(Authentication -> Providers -> Email)에서 'Confirm email' 설정을 끄시거나 이메일 인증을 진행해주세요.";
+    }
+    if (msg.includes("User already registered")) {
+      return "이미 가입된 이메일 계정입니다. 해당 계정으로 로그인해주세요.";
+    }
+    if (msg.includes("Password should be at least")) {
+      return "비밀번호는 최소 6자리 이상이어야 합니다.";
+    }
+    if (msg.includes("rate limit") || msg.includes("over_email_send_rate_limit")) {
+      return "단시간에 너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.";
+    }
+    return msg;
+  };
+
   // 이메일 로그인 (자동 로그인 세션 즉시 영구 저장)
   const signInWithEmail = async (email, password) => {
     if (!isSupabaseConfigured) {
@@ -118,23 +139,27 @@ export function AuthProvider({ children }) {
       return { success: true, user: customUser };
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw new Error(formatAuthError(error));
 
-    setUser(data.user);
-    setSession(data.session);
-    setIsDemoUser(false);
+      setUser(data.user);
+      setSession(data.session);
+      setIsDemoUser(false);
 
-    if (typeof window !== "undefined" && data.user) {
-      localStorage.setItem(AUTH_USER_STORAGE, JSON.stringify(data.user));
-      if (data.session?.access_token) {
-        localStorage.setItem(AUTH_TOKEN_STORAGE, data.session.access_token);
+      if (typeof window !== "undefined" && data.user) {
+        localStorage.setItem(AUTH_USER_STORAGE, JSON.stringify(data.user));
+        if (data.session?.access_token) {
+          localStorage.setItem(AUTH_TOKEN_STORAGE, data.session.access_token);
+        }
       }
+      return { success: true, data };
+    } catch (err) {
+      throw new Error(formatAuthError(err));
     }
-    return { success: true, data };
   };
 
   // 회원가입
@@ -155,26 +180,30 @@ export function AuthProvider({ children }) {
       return { success: true, user: newUser };
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: metadata },
-    });
-    if (error) throw error;
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: metadata },
+      });
+      if (error) throw new Error(formatAuthError(error));
 
-    if (data?.user) {
-      setUser(data.user);
-      setSession(data.session);
-      setIsDemoUser(false);
+      if (data?.user) {
+        setUser(data.user);
+        setSession(data.session);
+        setIsDemoUser(false);
 
-      if (typeof window !== "undefined") {
-        localStorage.setItem(AUTH_USER_STORAGE, JSON.stringify(data.user));
-        if (data.session?.access_token) {
-          localStorage.setItem(AUTH_TOKEN_STORAGE, data.session.access_token);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(AUTH_USER_STORAGE, JSON.stringify(data.user));
+          if (data.session?.access_token) {
+            localStorage.setItem(AUTH_TOKEN_STORAGE, data.session.access_token);
+          }
         }
       }
+      return { success: true, data };
+    } catch (err) {
+      throw new Error(formatAuthError(err));
     }
-    return { success: true, data };
   };
 
   // 시연용 계정 원클릭 로그인 (해당 기기에 자동 로그인 영구 저장)
