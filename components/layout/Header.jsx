@@ -86,7 +86,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-xl border-b border-border">
+      <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-xl border-b border-border pt-safe">
         <div className="flex h-14 items-center justify-between px-4 sm:px-6 max-w-5xl mx-auto">
           {/* Left: Space Dropdown */}
           <div className="flex items-center gap-2">
