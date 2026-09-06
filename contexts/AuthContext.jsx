@@ -161,6 +161,19 @@ export function AuthProvider({ children }) {
       options: { data: metadata },
     });
     if (error) throw error;
+
+    if (data?.user) {
+      setUser(data.user);
+      setSession(data.session);
+      setIsDemoUser(false);
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem(AUTH_USER_STORAGE, JSON.stringify(data.user));
+        if (data.session?.access_token) {
+          localStorage.setItem(AUTH_TOKEN_STORAGE, data.session.access_token);
+        }
+      }
+    }
     return { success: true, data };
   };
 

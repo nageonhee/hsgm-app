@@ -596,26 +596,6 @@ export function DeviceProvider({ children }) {
   );
 }
 
-  return (
-    <DeviceContext.Provider
-      value={{
-        devices,
-        loading,
-        fetchDevices,
-        toggleDeviceStatus,
-        updateDeviceState,
-        togglePinDevice,
-        addDevice,
-        deleteDevice,
-        restoreDefaultDevices,
-        sortDevices,
-      }}
-    >
-      {children}
-    </DeviceContext.Provider>
-  );
-}
-
 export function useDevices() {
   const context = useContext(DeviceContext);
   if (!context) {

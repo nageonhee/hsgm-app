@@ -39,20 +39,23 @@ const DEFAULT_POWER_WATTS = {
 };
 
 export const deviceService = {
-  // 1. 가전 목록 조회 (가져오면서 프론트엔드 변수명으로 자동 정규화)
+  // 1. 가전 목록 조회 (해당 user_id의 기기만 엄격 격리 조회)
   async getDevices(userId) {
     if (isSupabaseConfigured && supabase) {
       try {
-        let query = supabase
-          .from("devices")
-          .select("*")
-          .order("created_at", { ascending: true });
+        if (!userId) return [];
 
-        if (userId && isValidUUID(userId)) {
-          query = query.eq("user_id", userId);
+        // 유효한 UUID 유저만 본인 DB 데이터 조회
+        if (!isValidUUID(userId)) {
+          return [];
         }
 
-        const { data, error } = await query;
+        const { data, error } = await supabase
+          .from("devices")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: true });
+
         if (!error && data) {
           return data.map(normalizeDevice);
         }
