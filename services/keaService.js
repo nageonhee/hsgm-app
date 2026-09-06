@@ -1,6 +1,7 @@
 /**
- * 한국에너지공단(KEA) 효율관리기자재 공공데이터 OpenAPI 클라이언트
- * 엔드포인트: https://apis.data.go.kr/B553530/eep
+ * 한국에너지공단(KEA) 공공데이터 OpenAPI 통합 클라이언트
+ * 1. 고효율 에너지기자재 인증제품 정보 (B553530/CRTIF)
+ * 2. 효율관리기자재 신고제품 정보 (B553530/eep)
  */
 
 export const keaService = {
@@ -21,8 +22,13 @@ export const keaService = {
       const encodedKey = encodeURIComponent(cleanKey);
       const cleanQuery = encodeURIComponent(modelName.trim());
 
-      // 한국에너지공단 B553530/eep 표준 OpenAPI URL
+      // 한국에너지공단 공식 OpenAPI 엔드포인트 목록
       const candidateUrls = [
+        // 1. 고효율 에너지기자재 인증제품 정보 (CRTIF)
+        `https://apis.data.go.kr/B553530/CRTIF/getCrtifList?serviceKey=${encodedKey}&pageNo=1&numOfRows=5&modelNm=${cleanQuery}&_type=json`,
+        `https://apis.data.go.kr/B553530/CRTIF/search?serviceKey=${encodedKey}&pageNo=1&numOfRows=5&keyword=${cleanQuery}&_type=json`,
+        `https://apis.data.go.kr/B553530/CRTIF/getCrtifSearchList?serviceKey=${encodedKey}&pageNo=1&numOfRows=5&model=${cleanQuery}&_type=json`,
+        // 2. 효율관리기자재 운용규정 신고제품 정보 (eep)
         `https://apis.data.go.kr/B553530/eep/search?serviceKey=${encodedKey}&pageNo=1&numOfRows=5&keyword=${cleanQuery}&_type=json`,
         `https://apis.data.go.kr/B553530/eep/getEepSearchList?serviceKey=${encodedKey}&pageNo=1&numOfRows=5&modelNm=${cleanQuery}&_type=json`,
         `https://apis.data.go.kr/B553530/eep/getEepList?serviceKey=${encodedKey}&pageNo=1&numOfRows=5&model=${cleanQuery}&_type=json`,
@@ -42,7 +48,6 @@ export const keaService = {
           try {
             data = JSON.parse(text);
           } catch {
-            // XML인 경우 무시
             continue;
           }
 
@@ -57,30 +62,34 @@ export const keaService = {
 
           if (list.length > 0) {
             const item = list[0];
-            const effGrade = parseInt(item.effLvl || item.grade || item.gradeNm || "1", 10) || 1;
-            const power = item.csmPwr || item.powerConsumption || item.capa || "";
+            const effGrade = parseInt(item.effLvl || item.grade || item.gradeNm || item.crtifGrade || "1", 10) || 1;
+            const power = item.csmPwr || item.powerConsumption || item.capa || item.ratedPwr || "";
             const monUsage = parseFloat(item.monCsmPwr || item.monthlyUsage || "0") || 35.0;
+            const isCertified = url.includes("CRTIF") || item.crtifNo != null;
 
             return {
-              brand: item.entrpsNm || item.makerNm || item.brand || "국내 공인 제조사",
+              brand: item.entrpsNm || item.makerNm || item.brand || item.coNm || "국내 공인 제조사",
               model: item.modelNm || item.model || modelName,
-              name: `${item.entrpsNm || ""} ${item.modelNm || modelName}`.trim(),
-              category: item.prdlstNm || item.category || "가전제품",
+              name: `${item.entrpsNm || item.makerNm || ""} ${item.modelNm || modelName}`.trim(),
+              category: item.prdlstNm || item.category || item.itemNm || "고효율 가전",
               energyGrade: effGrade,
               releaseEnergyGrade: effGrade,
               powerConsumption: power ? `${power}W` : "공인 표준 전력",
               monthlyUsageKWh: monUsage,
               monthlyCost: Math.round(monUsage * 250),
-              releaseYear: item.authDate ? item.authDate.slice(0, 4) : "2024",
-              source: "한국에너지공단(KEA) 공공 OpenAPI 실시간 공시",
+              releaseYear: item.authDate ? item.authDate.slice(0, 4) : item.crtifDate ? item.crtifDate.slice(0, 4) : "2024",
+              isHighEfficiencyCertified: isCertified,
+              source: isCertified
+                ? "한국에너지공단(KEA) 고효율 에너지기자재 공식 인증"
+                : "한국에너지공단(KEA) 효율관리기자재 공공데이터",
             };
           }
         } catch (subErr) {
-          // 다음 URL 시도
+          // 다음 URL 순차 시도
         }
       }
     } catch (e) {
-      console.warn("한국에너지공단 API 통신 에러:", e.message);
+      console.warn("한국에너지공단 OpenAPI 연동 에러:", e.message);
     }
 
     return null;
