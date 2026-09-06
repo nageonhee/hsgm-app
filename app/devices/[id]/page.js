@@ -25,6 +25,8 @@ import {
   ArrowRight,
   TrendingDown,
   Sparkles,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,11 +44,25 @@ const ICON_MAP = {
 export default function DeviceDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { devices, toggleDeviceStatus } = useDevices();
+  const { devices, toggleDeviceStatus, deleteDevice } = useDevices();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const device = devices.find((d) => d.id === params.id) || devices[0];
   const Icon = ICON_MAP[device?.icon] || Zap;
   const isOn = device?.status;
+
+  const handleDelete = async () => {
+    if (!device || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await deleteDevice(device.id);
+      router.push("/devices");
+    } catch (e) {
+      console.error("삭제 실패:", e);
+      setIsDeleting(false);
+    }
+  };
 
   if (!device) {
     return (
@@ -74,7 +90,16 @@ export default function DeviceDetailPage() {
             <ArrowLeft className="w-4 h-4" />
             <span>가전 목록</span>
           </Link>
-          <span className="text-xs text-muted-foreground">{device.brand}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{device.brand}</span>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="p-1.5 rounded-lg text-red-500/70 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+              title="이 기기 삭제"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* ── 1. Hero Card ── */}
@@ -307,6 +332,54 @@ export default function DeviceDetailPage() {
             </a>
           </div>
         </div>
+
+        {/* ── 5. 기기 관리 및 삭제 액션 ── */}
+        <div className="pt-2">
+          <Button
+            onClick={() => setShowDeleteConfirm(true)}
+            variant="outline"
+            className="w-full h-11 rounded-2xl border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-600 font-bold text-xs gap-2 transition-all"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>이 가전 등록 삭제</span>
+          </Button>
+        </div>
+
+        {/* 삭제 확인 모달 */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-card border border-border p-6 rounded-3xl max-w-sm w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+              <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div className="text-center space-y-1.5">
+                <h3 className="text-base font-extrabold text-foreground">
+                  가전을 삭제하시겠습니까?
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong className="text-foreground">{device.name}</strong>({device.model}) 기기와 관련된 모든 실시간 전력 데이터 및 스펙 설정이 제거됩니다.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  className="rounded-xl text-xs h-10 border-border"
+                >
+                  취소
+                </Button>
+                <Button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs h-10 font-bold"
+                >
+                  {isDeleting ? "삭제 중..." : "삭제하기"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );

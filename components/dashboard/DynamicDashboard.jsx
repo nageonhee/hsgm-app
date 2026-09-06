@@ -17,51 +17,50 @@ import {
   Star,
   Plus,
   ShieldCheck,
-  ChevronLeft,
   ChevronRight,
   Activity,
   TrendingUp,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-// 지원 가전 카테고리 정의
-const DEFAULT_CATEGORIES = [
-  { key: "air_conditioner", label: "에어컨" },
-  { key: "refrigerator", label: "냉장고" },
-  { key: "washer", label: "세탁기" },
-  { key: "tv", label: "TV" },
-  { key: "cooker", label: "밥솥" },
-  { key: "air_purifier", label: "공기청정기" },
-  { key: "robot_cleaner", label: "로봇청소기" },
-];
-
 export default function DynamicDashboard() {
-  const { devices = [], toggleDeviceStatus, togglePinDevice } = useDevices();
-  const [selectedCategory, setSelectedCategory] = useState("air_conditioner");
+  const { devices = [], toggleDeviceStatus } = useDevices();
+  const [selectedDeviceId, setSelectedDeviceId] = useState(null);
 
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const deviceTouchStartX = useRef(null);
   const deviceTouchStartY = useRef(null);
-  const categoryContainerRef = useRef(null);
+  const tabsContainerRef = useRef(null);
 
-  const availableCategories = DEFAULT_CATEGORIES;
-
-  // 카테고리 변경 시 해당 칩이 자동으로 중앙으로 스크롤되도록 설정
+  // 1. 기기 목록이 로드되거나 변경될 때: 목록의 최상단 기기(devices[0])를 기본 선택
   useEffect(() => {
-    if (categoryContainerRef.current) {
-      const activeBtn = categoryContainerRef.current.querySelector('[data-selected="true"]');
+    if (devices.length > 0) {
+      if (!selectedDeviceId || !devices.some((d) => d.id === selectedDeviceId)) {
+        setSelectedDeviceId(devices[0].id);
+      }
+    } else {
+      setSelectedDeviceId(null);
+    }
+  }, [devices, selectedDeviceId]);
+
+  // 선택된 활성 기기 객체 (기본값: 최상단 기기 devices[0])
+  const activeDevice = useMemo(() => {
+    if (!devices || devices.length === 0) return null;
+    return devices.find((d) => d.id === selectedDeviceId) || devices[0];
+  }, [devices, selectedDeviceId]);
+
+  // 기기 탭 변경 시 해당 탭이 중앙으로 자동 스크롤
+  useEffect(() => {
+    if (tabsContainerRef.current && activeDevice) {
+      const activeBtn = tabsContainerRef.current.querySelector('[data-selected="true"]');
       if (activeBtn) {
         activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
       }
     }
-  }, [selectedCategory]);
-
-  // 선택된 카테고리의 대표 기기 선정
-  const activeDevice = useMemo(() => {
-    return devices.find((d) => d.category === selectedCategory) || devices[0] || null;
-  }, [devices, selectedCategory]);
+  }, [activeDevice]);
 
   // 소비전력 및 한전 누진세 계산
   const activeDevices = useMemo(() => devices.filter((d) => d.status), [devices]);
@@ -84,6 +83,7 @@ export default function DynamicDashboard() {
     return () => clearInterval(timer);
   }, []);
 
+  // 중앙 원형 그래픽 스와이프 제어 (기기 간 순환 전환)
   const handleDeviceTouchStart = (e) => {
     e.stopPropagation();
     deviceTouchStartX.current = e.touches[0].clientX;
@@ -100,7 +100,6 @@ export default function DynamicDashboard() {
     const diffX = currentX - deviceTouchStartX.current;
     const diffY = currentY - deviceTouchStartY.current;
 
-    // 수평 드래그가 주를 이룰 때만 실시간 위치 변경
     if (Math.abs(diffX) > Math.abs(diffY)) {
       setDragX(diffX);
     }
@@ -112,16 +111,16 @@ export default function DynamicDashboard() {
     setIsDragging(false);
 
     const threshold = 55;
-    const currentIndex = availableCategories.findIndex((c) => c.key === selectedCategory);
+    const currentIndex = devices.findIndex((d) => d.id === activeDevice?.id);
 
-    if (dragX < -threshold && currentIndex !== -1) {
-      // 왼쪽으로 드래그 -> 다음 기기 카테고리
-      const nextIdx = (currentIndex + 1) % availableCategories.length;
-      setSelectedCategory(availableCategories[nextIdx].key);
-    } else if (dragX > threshold && currentIndex !== -1) {
-      // 오른쪽으로 드래그 -> 이전 기기 카테고리
-      const prevIdx = (currentIndex - 1 + availableCategories.length) % availableCategories.length;
-      setSelectedCategory(availableCategories[prevIdx].key);
+    if (dragX < -threshold && currentIndex !== -1 && devices.length > 1) {
+      // 왼쪽으로 스와이프 -> 다음 등록 기기
+      const nextIdx = (currentIndex + 1) % devices.length;
+      setSelectedDeviceId(devices[nextIdx].id);
+    } else if (dragX > threshold && currentIndex !== -1 && devices.length > 1) {
+      // 오른쪽으로 스와이프 -> 이전 등록 기기
+      const prevIdx = (currentIndex - 1 + devices.length) % devices.length;
+      setSelectedDeviceId(devices[prevIdx].id);
     }
 
     deviceTouchStartX.current = null;
@@ -129,27 +128,12 @@ export default function DynamicDashboard() {
     setDragX(0);
   };
 
-  // 스와이프 중간 인식 실시간 계산
-  const currentCategoryIndex = availableCategories.findIndex((c) => c.key === selectedCategory);
-  const dragThreshold = 55;
-  let targetCategory = null;
-
-  if (isDragging && dragX !== 0 && currentCategoryIndex !== -1) {
-    if (dragX < 0) {
-      const nextIdx = (currentCategoryIndex + 1) % availableCategories.length;
-      targetCategory = availableCategories[nextIdx];
-    } else {
-      const prevIdx = (currentCategoryIndex - 1 + availableCategories.length) % availableCategories.length;
-      targetCategory = availableCategories[prevIdx];
-    }
-  }
-
   // 홈 즐겨찾기(Pin) 기기 목록
   const pinnedDevices = useMemo(() => {
     return devices.filter((d) => d.isPinned);
   }, [devices]);
 
-  // 가전 카테고리별 중앙 아이콘 매핑
+  // 가전 아이콘 매핑
   const renderDeviceIcon = (category) => {
     const iconProps = { className: "w-16 h-16 sm:w-24 sm:h-24 text-foreground stroke-[1.5]" };
     switch (category) {
@@ -174,47 +158,59 @@ export default function DynamicDashboard() {
 
   return (
     <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center py-2 sm:py-4 px-3 sm:px-4 space-y-4 sm:space-y-6 my-auto animate-in fade-in duration-300">
-      {/* 1. 상단 카테고리 칩 필터 (페이지 스와이프 이벤트 차단 e.stopPropagation() + 반응형 가로 스크롤 및 중앙 자동 정렬) */}
-      <div
-        onTouchStart={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
-        onTouchEnd={(e) => e.stopPropagation()}
-        className="relative w-full max-w-full sm:max-w-xl mx-auto px-1"
-      >
-        {/* 모바일 화면용 가로 스크롤 힌트 페이드 그래디언트 */}
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent z-10 sm:hidden" />
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent z-10 sm:hidden" />
-
+      {/* 1. 상단 등록 기기 전환 탭 바 (해당 영역 내 스크롤만 동작하며 페이지 스와이프 간섭 완벽 차단) */}
+      {devices.length > 0 && (
         <div
-          ref={categoryContainerRef}
-          className="flex items-center justify-start sm:justify-center gap-1.5 p-1.5 bg-muted/60 rounded-full border border-border shadow-xs overflow-x-auto max-w-full scrollbar-none touch-pan-x snap-x"
+          data-swipe-ignore="true"
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          className="relative w-full max-w-full sm:max-w-xl mx-auto px-1"
         >
-          {availableCategories.map((cat) => {
-            const isSelected = selectedCategory === cat.key;
-            const hasActiveDevice = devices.some((d) => d.category === cat.key && d.status);
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent z-10 sm:hidden" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent z-10 sm:hidden" />
 
-            return (
-              <button
-                key={cat.key}
-                data-selected={isSelected ? "true" : "false"}
-                onClick={() => setSelectedCategory(cat.key)}
-                className={`relative px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 snap-center ${
-                  isSelected
-                    ? "bg-background text-foreground shadow-sm font-bold ring-1 ring-border"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-                }`}
-              >
-                {cat.label}
-                {hasActiveDevice && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                )}
-              </button>
-            );
-          })}
+          <div
+            ref={tabsContainerRef}
+            className="flex items-center justify-start sm:justify-center gap-1.5 p-1.5 bg-muted/60 rounded-full border border-border shadow-xs overflow-x-auto max-w-full scrollbar-none touch-pan-x snap-x"
+          >
+            {devices.map((device) => {
+              const isSelected = activeDevice?.id === device.id;
+              return (
+                <button
+                  key={device.id}
+                  data-selected={isSelected ? "true" : "false"}
+                  onClick={() => setSelectedDeviceId(device.id)}
+                  className={`relative px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 snap-center ${
+                    isSelected
+                      ? "bg-background text-foreground shadow-sm font-bold ring-1 ring-border"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                  }`}
+                >
+                  {device.isPinned && (
+                    <Star className="w-3 h-3 fill-amber-500 text-amber-500 shrink-0" />
+                  )}
+                  <span className="truncate max-w-[110px] sm:max-w-[140px]">{device.name}</span>
+                  {device.status && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+
+            <Link
+              href="/devices/add"
+              className="px-2.5 py-1.5 rounded-full text-xs text-muted-foreground hover:text-foreground hover:bg-background/50 flex items-center gap-1 shrink-0 snap-center border border-dashed border-border transition-colors"
+              title="새 스마트 가전 등록"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-medium hidden sm:inline">기기 추가</span>
+            </Link>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 2. 중앙 대형 기기 그래픽 영역 (화면 전체 너비 스와이프 영역 -> 가전만 변경, 페이지 전환 완전 차단) */}
+      {/* 2. 중앙 대형 기기 그래픽 영역 (등록된 기기가 있을 때) */}
       {activeDevice ? (
         <div
           onTouchStart={handleDeviceTouchStart}
@@ -229,9 +225,8 @@ export default function DynamicDashboard() {
             }}
             className="flex flex-col items-center space-y-3 sm:space-y-4 w-full"
           >
-            {/* 메인 원형 기기 그래픽 및 완벽한 원형 빛 후광 */}
+            {/* 메인 원형 기기 그래픽 및 원형 빛 후광 */}
             <div className="relative flex items-center justify-center">
-              {/* 원형 전방향 빛 후광 (다크 모드는 기존 은은함 유지, 라이트 모드는 자연스럽고 부드럽게 조정) */}
               <div
                 className={`absolute -inset-2 sm:-inset-2.5 rounded-full blur-md transition-all duration-500 pointer-events-none z-0 ${
                   activeDevice.status
@@ -240,7 +235,6 @@ export default function DynamicDashboard() {
                 }`}
               />
 
-              {/* 메인 원형 기기 본체 (불투명 bg-card 및 z-10으로 빛 위에 얹혀 내부 빛 침범 차단) */}
               <div
                 className={`relative z-10 w-48 h-48 sm:w-64 sm:h-64 rounded-full border transition-all duration-300 flex items-center justify-center bg-card shadow-sm ${
                   activeDevice.status
@@ -248,7 +242,7 @@ export default function DynamicDashboard() {
                     : "border-border/70 opacity-80"
                 }`}
               >
-                {renderDeviceIcon(activeDevice.category || selectedCategory)}
+                {renderDeviceIcon(activeDevice.category)}
 
                 {/* 하단 실시간 소비전력 뱃지 */}
                 <div className="absolute -bottom-3 bg-background border border-border px-3.5 py-1 rounded-full shadow-md flex items-center gap-2">
@@ -289,7 +283,7 @@ export default function DynamicDashboard() {
             </div>
           </div>
 
-          {/* 메인 원터치 전원 버튼 및 상세 보기 버튼 (버튼 터치 시 클릭 작동을 위해 stopPropagation) */}
+          {/* 메인 원터치 전원 버튼 및 상세 보기 버튼 */}
           <div
             onTouchStart={(e) => e.stopPropagation()}
             onTouchMove={(e) => e.stopPropagation()}
@@ -330,21 +324,100 @@ export default function DynamicDashboard() {
           </div>
         </div>
       ) : (
-        /* 등록된 가전이 없을 때 가이드 카드 */
-        <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
-          <div className="w-20 h-20 rounded-3xl bg-muted flex items-center justify-center text-muted-foreground">
-            <Zap className="w-10 h-10" />
+        /* 0대 등록 시: 스마트홈 통합 관리 인터랙티브 SVG 그래픽 & 깔끔한 스탠바이 안내 */
+        <div className="w-full flex flex-col items-center justify-center py-6 sm:py-8 space-y-4">
+          <div className="relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center">
+            {/* 배경 은은한 오비탈 펄스 링 */}
+            <div className="absolute inset-2 rounded-full border border-dashed border-border/80 animate-[spin_40s_linear_infinite]" />
+            <div className="absolute inset-8 rounded-full border border-blue-500/20 dark:border-blue-500/10 animate-pulse" />
+
+            {/* 인터랙티브 스마트홈 통합 관리 커스텀 SVG */}
+            <svg
+              viewBox="0 0 240 240"
+              className="w-full h-full drop-shadow-md"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* 에너지 연결 트랙 라인 */}
+              <path
+                d="M120 120 L60 70 M120 120 L180 70 M120 120 L50 160 M120 120 L190 160 M120 120 L120 40"
+                stroke="currentColor"
+                className="text-border"
+                strokeWidth="1.5"
+                strokeDasharray="3 3"
+              />
+
+              {/* 주변 가전 스마트 노드들 */}
+              {/* 1. 에어컨 노드 */}
+              <g transform="translate(45, 55)">
+                <circle cx="15" cy="15" r="14" className="fill-muted stroke-border" strokeWidth="1" />
+                <path d="M10 15h10M12 18h6M11 12h8" stroke="currentColor" className="text-muted-foreground" strokeWidth="1.2" strokeLinecap="round" />
+              </g>
+
+              {/* 2. 세탁기 노드 */}
+              <g transform="translate(165, 55)">
+                <circle cx="15" cy="15" r="14" className="fill-muted stroke-border" strokeWidth="1" />
+                <rect x="9" y="8" width="12" height="14" rx="2" stroke="currentColor" className="text-muted-foreground" strokeWidth="1.2" />
+                <circle cx="15" cy="16" r="3.5" stroke="currentColor" className="text-muted-foreground" strokeWidth="1.2" />
+              </g>
+
+              {/* 3. 스마트 TV 노드 */}
+              <g transform="translate(105, 25)">
+                <circle cx="15" cy="15" r="14" className="fill-muted stroke-border" strokeWidth="1" />
+                <rect x="8" y="9" width="14" height="9" rx="1.5" stroke="currentColor" className="text-muted-foreground" strokeWidth="1.2" />
+                <path d="M13 20h4" stroke="currentColor" className="text-muted-foreground" strokeWidth="1.2" strokeLinecap="round" />
+              </g>
+
+              {/* 4. 냉장고 노드 */}
+              <g transform="translate(35, 145)">
+                <circle cx="15" cy="15" r="14" className="fill-muted stroke-border" strokeWidth="1" />
+                <rect x="10" y="8" width="10" height="14" rx="1.5" stroke="currentColor" className="text-muted-foreground" strokeWidth="1.2" />
+                <path d="M10 14h10" stroke="currentColor" className="text-muted-foreground" strokeWidth="1" />
+              </g>
+
+              {/* 5. 로봇청소기 / 공기청정기 노드 */}
+              <g transform="translate(175, 145)">
+                <circle cx="15" cy="15" r="14" className="fill-muted stroke-border" strokeWidth="1" />
+                <circle cx="15" cy="15" r="7" stroke="currentColor" className="text-muted-foreground" strokeWidth="1.2" />
+                <circle cx="15" cy="15" r="2" className="fill-muted-foreground" />
+              </g>
+
+              {/* 중앙 메인 AI 에너지 허브 본체 */}
+              <g transform="translate(85, 85)">
+                <circle cx="35" cy="35" r="34" className="fill-card stroke-blue-500/40 shadow-lg" strokeWidth="2" />
+                <circle cx="35" cy="35" r="28" className="fill-blue-500/10" />
+                <path
+                  d="M35 22 L27 36 L34 36 L32 48 L43 33 L36 33 Z"
+                  className="fill-blue-600 dark:fill-blue-400"
+                />
+              </g>
+            </svg>
+
+            {/* 중앙 하단 스탠바이 모드 뱃지 */}
+            <div className="absolute -bottom-2 bg-background border border-border px-3.5 py-1 rounded-full shadow-md flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-muted-foreground/50" />
+              <span className="text-xs font-mono font-bold text-muted-foreground">스탠바이 • 0 W</span>
+            </div>
           </div>
-          <div className="space-y-1">
-            <h3 className="text-base font-bold text-foreground">등록된 가전이 없습니다</h3>
-            <p className="text-xs text-muted-foreground">
-              사진 한 장으로 명판을 스캔하여 첫 번째 스마트 가전을 등록해 보세요.
+
+          {/* 깔끔하고 절제된 타이포그래피 및 안내 문구 */}
+          <div className="text-center space-y-1.5 max-w-sm px-4">
+            <span className="text-[10px] sm:text-[11px] font-bold text-blue-500 tracking-wider uppercase">
+              HSGM Smart Home Hub
+            </span>
+            <h3 className="text-base sm:text-lg font-extrabold text-foreground">
+              등록된 스마트 가전이 없습니다
+            </h3>
+            <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed font-medium">
+              가전 명판 사진을 스캔하거나 직접 입력하여 첫 스마트 가전을 등록해 보세요.
             </p>
           </div>
-          <Button asChild size="sm" className="rounded-xl gap-1.5 text-xs font-bold mt-2">
+
+          {/* 원터치 기기 등록 버튼 */}
+          <Button asChild size="sm" className="rounded-2xl h-10 px-5 gap-2 text-xs font-bold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground">
             <Link href="/devices/add">
-              <Plus className="w-4 h-4" />
-              첫 가전 스캔 등록
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              스마트 가전 스캔 등록
             </Link>
           </Button>
         </div>
@@ -447,10 +520,13 @@ export default function DynamicDashboard() {
             {pinnedDevices.map((pDev) => (
               <div
                 key={pDev.id}
-                className={`p-3 rounded-2xl border transition-all flex items-center justify-between ${
-                  pDev.status
-                    ? "bg-blue-500/10 border-blue-500/30"
-                    : "bg-card/60 border-border opacity-75"
+                onClick={() => setSelectedDeviceId(pDev.id)}
+                className={`p-3 rounded-2xl border transition-all flex items-center justify-between cursor-pointer ${
+                  activeDevice?.id === pDev.id
+                    ? "ring-2 ring-primary/40 border-primary/50 bg-card"
+                    : pDev.status
+                    ? "bg-blue-500/10 border-blue-500/30 hover:border-primary/40"
+                    : "bg-card/60 border-border opacity-75 hover:opacity-100"
                 }`}
               >
                 <div className="space-y-0.5 truncate mr-2">
@@ -460,7 +536,10 @@ export default function DynamicDashboard() {
                   </p>
                 </div>
                 <button
-                  onClick={() => toggleDeviceStatus(pDev.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleDeviceStatus(pDev.id);
+                  }}
                   className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${
                     pDev.status
                       ? "bg-blue-600 text-white shadow-md shadow-blue-500/30"

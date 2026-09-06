@@ -12,6 +12,8 @@ const normalizeDevice = (d) => {
   return {
     ...d,
     isSmartControl: d.is_smart_control ?? d.isSmartControl ?? true,
+    isPinned: d.is_pinned ?? d.isPinned ?? true,
+    createdAt: d.created_at ? new Date(d.created_at).getTime() : (d.createdAt || Date.now()),
     currentPower: d.current_power ?? d.currentPower ?? 0,
     monthlyCost: d.monthly_cost ?? d.monthlyCost ?? 0,
     monthlyUsage: d.monthly_usage_kwh ?? d.monthlyUsage ?? 0,

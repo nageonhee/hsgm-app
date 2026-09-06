@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { deviceService } from "@/services/deviceService";
 
 // 심사위원 무마찰 체험 및 RLS 차단 대비 기본 고품질 프리셋 데이터 (총 4종)
-const DEFAULT_PRESET_DEVICES = [
+export const DEFAULT_PRESET_DEVICES = [
   {
     id: "preset-aircon-01",
     name: "거실 무풍 갤러리 에어컨",
@@ -20,6 +20,7 @@ const DEFAULT_PRESET_DEVICES = [
     energyGrade: 1,
     releaseEnergyGrade: 1,
     isPinned: true,
+    createdAt: 1700000001000,
     specs: {
       releaseYear: "2024",
       powerConsumption: "1750W",
@@ -28,31 +29,6 @@ const DEFAULT_PRESET_DEVICES = [
       center: "삼성전자 서비스센터",
       phone: "1588-3366",
       siteUrl: "https://www.samsungsvc.co.kr",
-    },
-  },
-  {
-    id: "preset-fridge-02",
-    name: "키친 오브제 4도어 냉장고",
-    brand: "LG전자",
-    category: "refrigerator",
-    model: "M874AAA451",
-    icon: "Refrigerator",
-    status: true, // 절전 루틴 실행 시에도 안전 가드레일로 켜짐 유지
-    currentPower: 52,
-    monthlyUsageKWh: 36,
-    monthlyCost: 8100,
-    annualEstimatedCost: 97200,
-    energyGrade: 1,
-    releaseEnergyGrade: 1,
-    isPinned: true,
-    specs: {
-      releaseYear: "2024",
-      powerConsumption: "52W",
-    },
-    asInfo: {
-      center: "LG전자 서비스센터",
-      phone: "1544-7777",
-      siteUrl: "https://www.lge.co.kr",
     },
   },
   {
@@ -70,6 +46,7 @@ const DEFAULT_PRESET_DEVICES = [
     energyGrade: 1,
     releaseEnergyGrade: 1,
     isPinned: true,
+    createdAt: 1700000002000,
     specs: {
       releaseYear: "2024",
       powerConsumption: "450W",
@@ -95,6 +72,7 @@ const DEFAULT_PRESET_DEVICES = [
     energyGrade: 2,
     releaseEnergyGrade: 2,
     isPinned: false,
+    createdAt: 1700000003000,
     specs: {
       releaseYear: "2023",
       powerConsumption: "120W",
@@ -105,7 +83,56 @@ const DEFAULT_PRESET_DEVICES = [
       siteUrl: "https://www.lge.co.kr",
     },
   },
+  {
+    id: "preset-fridge-02",
+    name: "키친 오브제 4도어 냉장고",
+    brand: "LG전자",
+    category: "refrigerator",
+    model: "M874AAA451",
+    icon: "Refrigerator",
+    status: true, // 절전 루틴 실행 시에도 안전 가드레일로 켜짐 유지
+    currentPower: 52,
+    monthlyUsageKWh: 36,
+    monthlyCost: 8100,
+    annualEstimatedCost: 97200,
+    energyGrade: 1,
+    releaseEnergyGrade: 1,
+    isPinned: true,
+    createdAt: 1700000004000,
+    specs: {
+      releaseYear: "2024",
+      powerConsumption: "52W",
+    },
+    asInfo: {
+      center: "LG전자 서비스센터",
+      phone: "1544-7777",
+      siteUrl: "https://www.lge.co.kr",
+    },
+  },
 ];
+
+// IoT 지원 기기 최우선 + 그 안에서 등록 순서(createdAt) 정렬 함수
+export const sortDevices = (list) => {
+  if (!Array.isArray(list)) return [];
+  return [...list].sort((a, b) => {
+    const aIsIoT = (a.isSmartControl !== false) && a.category !== "refrigerator" && !a.isProtectedGuardrail;
+    const bIsIoT = (b.isSmartControl !== false) && b.category !== "refrigerator" && !b.isProtectedGuardrail;
+    
+    // 1순위: IoT 지원 모델 최상단 우선
+    if (aIsIoT && !bIsIoT) return -1;
+    if (!aIsIoT && bIsIoT) return 1;
+
+    // 2순위: 등록 순서 (createdAt 기준)
+    const aTime = a.createdAt || (a.created_at ? new Date(a.created_at).getTime() : 0);
+    const bTime = b.createdAt || (b.created_at ? new Date(b.created_at).getTime() : 0);
+    if (aTime && bTime && aTime !== bTime) {
+      return aTime - bTime;
+    }
+    return 0;
+  });
+};
+
+const STORAGE_KEY = "hsgm_devices_v1";
 
 const DeviceContext = createContext(null);
 
@@ -113,19 +140,57 @@ export function DeviceProvider({ children }) {
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. 초기 가전 목록 로드 (DB 조회 실패/빈 배열 시 프리셋 자동 폴백)
+  // 로컬 스토리지 헬퍼
+  const saveLocalDevices = (updatedList) => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+      } catch (e) {
+        console.warn("로컬 스토리지 저장 실패:", e);
+      }
+    }
+  };
+
+  // 1. 초기 가전 목록 로드
   const fetchDevices = useCallback(async () => {
+    // 1-A: 로컬 캐시가 있으면 먼저 즉시 로드
+    let cached = null;
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          cached = JSON.parse(raw);
+        }
+      } catch (e) {
+        console.warn("로컬 캐시 파싱 에러:", e);
+      }
+    }
+
+    if (cached && Array.isArray(cached) && cached.length >= 0) {
+      // 캐시가 존재하면 (0개인 경우 포함) 캐시 우선 설정
+      setDevices(sortDevices(cached));
+      setLoading(false);
+      return;
+    }
+
+    // 1-B: 캐시가 없을 때 DB 조회 시도
     try {
       const data = await deviceService.getDevices();
       if (data && data.length > 0) {
-        setDevices(data);
+        const sorted = sortDevices(data);
+        setDevices(sorted);
+        saveLocalDevices(sorted);
       } else {
-        // DB가 비어있거나 게스트 접근일 때 기본 프리셋 주입
-        setDevices(DEFAULT_PRESET_DEVICES);
+        // 첫 방문 시 프리셋 데이터 주입
+        const sortedPreset = sortDevices(DEFAULT_PRESET_DEVICES);
+        setDevices(sortedPreset);
+        saveLocalDevices(sortedPreset);
       }
     } catch (err) {
-      console.warn("Supabase 연결 제한 또는 게스트 상태 - 데모 프리셋 데이터로 구동합니다:", err);
-      setDevices(DEFAULT_PRESET_DEVICES);
+      console.warn("Supabase 연결 제한 - 데모 프리셋으로 구동합니다:", err);
+      const sortedPreset = sortDevices(DEFAULT_PRESET_DEVICES);
+      setDevices(sortedPreset);
+      saveLocalDevices(sortedPreset);
     } finally {
       setLoading(false);
     }
@@ -139,20 +204,17 @@ export function DeviceProvider({ children }) {
       const { eventType, new: newDevice, old: oldDevice } = payload;
 
       setDevices((prev) => {
+        let next = prev;
         if (eventType === "INSERT") {
           if (prev.some((d) => d.id === newDevice.id)) return prev;
-          return [...prev, newDevice];
+          next = sortDevices([...prev, newDevice]);
+        } else if (eventType === "UPDATE") {
+          next = sortDevices(prev.map((d) => (d.id === newDevice.id ? { ...d, ...newDevice } : d)));
+        } else if (eventType === "DELETE") {
+          next = prev.filter((d) => d.id !== oldDevice?.id);
         }
-
-        if (eventType === "UPDATE") {
-          return prev.map((d) => (d.id === newDevice.id ? { ...d, ...newDevice } : d));
-        }
-
-        if (eventType === "DELETE") {
-          return prev.filter((d) => d.id !== oldDevice?.id);
-        }
-
-        return prev;
+        saveLocalDevices(next);
+        return next;
       });
     });
 
@@ -161,12 +223,11 @@ export function DeviceProvider({ children }) {
     };
   }, [fetchDevices]);
 
-  // 3. 전원 온/오프 토글 함수 (DB 통신 실패 시에도 UI는 정상 동작 유지)
+  // 3. 전원 온/오프 토글 함수
   const toggleDeviceStatus = async (id) => {
     const target = devices.find((d) => d.id === id);
     if (!target) return;
 
-    // 냉장고 또는 IoT 미지원 일반 가전은 전원 제어를 거부하되 경고창(alert)을 띄우지 않고 자연스럽게 처리
     if (target.category === "refrigerator" || target.isProtectedGuardrail) {
       return;
     }
@@ -176,28 +237,30 @@ export function DeviceProvider({ children }) {
       ? parseInt(target.specs?.powerConsumption) || (target.category === "air_conditioner" ? 1450 : 80)
       : 0;
 
-    // 낙관적 UI 즉시 반영 (실시간 소비전력 포함)
-    setDevices((prev) =>
-      prev.map((d) =>
+    setDevices((prev) => {
+      const next = prev.map((d) =>
         d.id === id ? { ...d, status: nextStatus, currentPower: nextPower } : d
-      )
-    );
+      );
+      saveLocalDevices(next);
+      return next;
+    });
 
     try {
       await deviceService.updateDeviceStatus(id, nextStatus, target.category);
     } catch (err) {
-      console.warn("서버 상태 동기화 실패 (게스트 데모 모드로 로컬 유지):", err);
-      // DB 통신 에러가 나더라도 사용자의 토글 상태를 롤백시키지 않아 심사위원 경험을 해치지 않습니다.
+      console.warn("서버 상태 동기화 실패 (로컬 상태 유지):", err);
     }
   };
 
   // 4. 가전 세부 상태 수정 함수
   const updateDeviceState = async (id, statePatch) => {
-    setDevices((prev) =>
-      prev.map((d) =>
+    setDevices((prev) => {
+      const next = prev.map((d) =>
         d.id === id ? { ...d, state: { ...(d.state || {}), ...statePatch } } : d
-      )
-    );
+      );
+      saveLocalDevices(next);
+      return next;
+    });
 
     try {
       await deviceService.updateDeviceState(id, statePatch);
@@ -208,44 +271,61 @@ export function DeviceProvider({ children }) {
 
   // 5. 홈 화면 표시(핀 고정) 토글 함수
   const togglePinDevice = (id) => {
-    setDevices((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, isPinned: !d.isPinned } : d))
-    );
+    setDevices((prev) => {
+      const next = prev.map((d) => (d.id === id ? { ...d, isPinned: !d.isPinned } : d));
+      saveLocalDevices(next);
+      return next;
+    });
   };
 
-  // 6. 가전 추가 (Supabase 통신 실패 시 로컬 Fallback 객체 생성)
+  // 6. 가전 추가
   const addDevice = async (deviceData, userId) => {
+    const nowTime = Date.now();
+    const enriched = {
+      ...deviceData,
+      createdAt: nowTime,
+      isPinned: true,
+    };
+
     try {
-      const newDevice = await deviceService.addDevice(deviceData, userId);
+      const newDevice = await deviceService.addDevice(enriched, userId);
       if (newDevice) {
+        const item = { ...newDevice, createdAt: nowTime, isPinned: true };
         setDevices((prev) => {
-          if (prev.some((d) => d.id === newDevice.id)) return prev;
-          return [...prev, newDevice];
+          const next = sortDevices([...prev.filter((d) => d.id !== item.id), item]);
+          saveLocalDevices(next);
+          return next;
         });
-        return newDevice;
+        return item;
       }
     } catch (err) {
       console.warn("DB 등록 제한(게스트/RLS) - 로컬 세션 기기로 등록합니다:", err);
-      // 서버 에러 시에도 에러 팝업으로 흐름을 끊지 않고 로컬 기기로 등록해 UX를 완결짓습니다.
       const localDevice = {
-        id: "local-" + Date.now(),
-        ...deviceData,
+        id: "local-" + nowTime,
+        ...enriched,
         status: false,
         currentPower: 0,
-        isPinned: true,
       };
-      setDevices((prev) => [...prev, localDevice]);
+      setDevices((prev) => {
+        const next = sortDevices([...prev, localDevice]);
+        saveLocalDevices(next);
+        return next;
+      });
       return localDevice;
     }
   };
 
-  // 7. 가전 삭제
+  // 7. 가전 삭제 (기기 상세 페이지 등에서 호출)
   const deleteDevice = async (id) => {
-    setDevices((prev) => prev.filter((d) => d.id !== id));
+    setDevices((prev) => {
+      const next = prev.filter((d) => d.id !== id);
+      saveLocalDevices(next);
+      return next;
+    });
     try {
       await deviceService.deleteDevice(id);
     } catch (err) {
-      console.warn("DB 삭제 통신 제외 (로컬 화면에서 삭제 완료):", err);
+      console.warn("DB 삭제 통신 오류 (로컬 삭제 완료):", err);
     }
   };
 
@@ -260,6 +340,7 @@ export function DeviceProvider({ children }) {
         togglePinDevice,
         addDevice,
         deleteDevice,
+        sortDevices,
       }}
     >
       {children}

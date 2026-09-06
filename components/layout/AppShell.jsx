@@ -37,6 +37,16 @@ export function AppShell({ children }) {
   );
 
   const handleTouchStart = (e) => {
+    // 가로 스크롤 전용 영역([data-swipe-ignore="true"], .overflow-x-auto 등) 내부 터치 시에는 페이지 전환 스와이프 비활성화
+    if (e.target && typeof e.target.closest === "function") {
+      if (e.target.closest('[data-swipe-ignore="true"], [data-horizontal-scroll="true"], .overflow-x-auto')) {
+        touchStartX.current = null;
+        touchStartY.current = null;
+        setIsPageDragging(false);
+        return;
+      }
+    }
+
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     setIsPageDragging(true);
@@ -44,7 +54,7 @@ export function AppShell({ children }) {
   };
 
   const handleTouchMove = (e) => {
-    if (touchStartX.current === null || touchStartY.current === null) return;
+    if (touchStartX.current === null || touchStartY.current === null || !isPageDragging) return;
     const currentX = e.touches[0].clientX;
     const currentY = e.touches[0].clientY;
     const diffX = currentX - touchStartX.current;
