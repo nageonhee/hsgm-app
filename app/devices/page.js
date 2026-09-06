@@ -40,7 +40,7 @@ const ICON_MAP = {
 };
 
 export default function DevicesPage() {
-  const { devices, toggleDeviceStatus, togglePinDevice } = useDevices();
+  const { devices, toggleDeviceStatus, togglePinDevice, currentYear = 2026 } = useDevices();
   const [selectedBrand, setSelectedBrand] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -223,7 +223,7 @@ export default function DevicesPage() {
                         ? "bg-amber-100 border-amber-300 text-amber-700 dark:bg-amber-500/15 dark:border-amber-500/30 dark:text-amber-400"
                         : "bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-500/15 dark:border-blue-500/30 dark:text-blue-400"
                     }`}>
-                      2024년 기준 {device.currentEnergyGrade || 1}등급
+                      {device.currentGradeYear || currentYear}년 기준 {device.currentEnergyGrade || 1}등급
                     </span>
                   </div>
 

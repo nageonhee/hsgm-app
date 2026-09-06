@@ -44,7 +44,7 @@ const ICON_MAP = {
 export default function DeviceDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { devices, toggleDeviceStatus, deleteDevice } = useDevices();
+  const { devices, toggleDeviceStatus, deleteDevice, currentYear = 2026 } = useDevices();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -193,7 +193,7 @@ export default function DeviceDetailPage() {
                   : "bg-blue-100 border-blue-300 dark:bg-blue-500/15 dark:border-blue-500/30"
               }`}>
                 <span className="text-[11px] text-muted-foreground mb-1">
-                  현행 기준 재환산
+                  현행 ({device.currentGradeYear || currentYear}년) 기준 재환산
                 </span>
                 <span className={`font-extrabold text-xl font-mono ${
                   isGradeDowngraded ? "text-amber-700 dark:text-amber-400" : "text-blue-700 dark:text-blue-400"
