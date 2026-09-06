@@ -401,17 +401,7 @@ export default function AddDevicePage() {
       <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300 pb-16">
         {/* 상단 네비게이션 */}
         <div className="flex items-center justify-between">
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground gap-1.5 p-0"
-          >
-            <Link href="/devices">
-              <ArrowLeft className="w-4 h-4" />
-              <span>가전 목록</span>
-            </Link>
-          </Button>
+          <h1 className="text-lg font-bold text-foreground tracking-tight">신규 기기 추가</h1>
           <Badge className="bg-primary/20 text-primary border-primary/30 text-xs flex items-center gap-1">
             <Sparkles className="w-3 h-3" />
             AI 스마트 스캔
