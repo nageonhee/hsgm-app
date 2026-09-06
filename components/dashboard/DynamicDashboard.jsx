@@ -14,16 +14,24 @@ import {
   Disc,
   Zap,
   Power,
-  Star,
   Plus,
   ShieldCheck,
   ChevronRight,
   Activity,
   TrendingUp,
-  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+const CATEGORY_NAMES = {
+  air_conditioner: "에어컨",
+  refrigerator: "냉장고",
+  washer: "세탁기",
+  tv: "TV",
+  cooker: "밥솥",
+  air_purifier: "공기청정기",
+  robot_cleaner: "로봇청소기",
+};
 
 export default function DynamicDashboard() {
   const { devices = [], toggleDeviceStatus } = useDevices();
@@ -128,11 +136,6 @@ export default function DynamicDashboard() {
     setDragX(0);
   };
 
-  // 홈 즐겨찾기(Pin) 기기 목록
-  const pinnedDevices = useMemo(() => {
-    return devices.filter((d) => d.isPinned);
-  }, [devices]);
-
   // 가전 아이콘 매핑
   const renderDeviceIcon = (category) => {
     const iconProps = { className: "w-16 h-16 sm:w-24 sm:h-24 text-foreground stroke-[1.5]" };
@@ -158,54 +161,57 @@ export default function DynamicDashboard() {
 
   return (
     <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center py-2 sm:py-4 px-3 sm:px-4 space-y-4 sm:space-y-6 my-auto animate-in fade-in duration-300">
-      {/* 1. 상단 등록 기기 전환 탭 바 (해당 영역 내 스크롤만 동작하며 페이지 스와이프 간섭 완벽 차단) */}
+      {/* 1. 상단 등록 기기 전환 바: 기기 종류별 표시, 기기 개수 및 모니터 너비에 맞게 유동적 조절 */}
       {devices.length > 0 && (
-        <div
-          data-swipe-ignore="true"
-          onTouchStart={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
-          onTouchEnd={(e) => e.stopPropagation()}
-          className="relative w-full max-w-full sm:max-w-xl mx-auto px-1"
-        >
-          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent z-10 sm:hidden" />
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent z-10 sm:hidden" />
-
+        <div className="w-full flex justify-center px-2">
           <div
-            ref={tabsContainerRef}
-            className="flex items-center justify-start sm:justify-center gap-1.5 p-1.5 bg-muted/60 rounded-full border border-border shadow-xs overflow-x-auto max-w-full scrollbar-none touch-pan-x snap-x"
+            data-swipe-ignore="true"
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            className="relative max-w-full flex items-center justify-center"
           >
-            {devices.map((device) => {
-              const isSelected = activeDevice?.id === device.id;
-              return (
-                <button
-                  key={device.id}
-                  data-selected={isSelected ? "true" : "false"}
-                  onClick={() => setSelectedDeviceId(device.id)}
-                  className={`relative px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 snap-center ${
-                    isSelected
-                      ? "bg-background text-foreground shadow-sm font-bold ring-1 ring-border"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-                  }`}
-                >
-                  {device.isPinned && (
-                    <Star className="w-3 h-3 fill-amber-500 text-amber-500 shrink-0" />
-                  )}
-                  <span className="truncate max-w-[110px] sm:max-w-[140px]">{device.name}</span>
-                  {device.status && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
-                  )}
-                </button>
-              );
-            })}
-
-            <Link
-              href="/devices/add"
-              className="px-2.5 py-1.5 rounded-full text-xs text-muted-foreground hover:text-foreground hover:bg-background/50 flex items-center gap-1 shrink-0 snap-center border border-dashed border-border transition-colors"
-              title="새 스마트 가전 등록"
+            <div
+              ref={tabsContainerRef}
+              className="inline-flex items-center justify-center gap-1.5 p-1.5 bg-muted/60 rounded-full border border-border shadow-xs overflow-x-auto max-w-full scrollbar-none touch-pan-x snap-x"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-medium hidden sm:inline">기기 추가</span>
-            </Link>
+              {devices.map((device) => {
+                const isSelected = activeDevice?.id === device.id;
+                const sameCategoryDevices = devices.filter((d) => d.category === device.category);
+                const categoryLabel = CATEGORY_NAMES[device.category] || device.name;
+                const displayName =
+                  sameCategoryDevices.length > 1
+                    ? `${categoryLabel} ${sameCategoryDevices.findIndex((d) => d.id === device.id) + 1}`
+                    : categoryLabel;
+
+                return (
+                  <button
+                    key={device.id}
+                    data-selected={isSelected ? "true" : "false"}
+                    onClick={() => setSelectedDeviceId(device.id)}
+                    className={`relative px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 snap-center ${
+                      isSelected
+                        ? "bg-background text-foreground shadow-sm font-bold ring-1 ring-border"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                    }`}
+                  >
+                    <span>{displayName}</span>
+                    {device.status && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+
+              <Link
+                href="/devices/add"
+                className="px-2.5 py-1.5 rounded-full text-xs text-muted-foreground hover:text-foreground hover:bg-background/50 flex items-center gap-1 shrink-0 snap-center border border-dashed border-border transition-colors"
+                title="새 스마트 가전 등록"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-medium hidden sm:inline">기기 추가</span>
+              </Link>
+            </div>
           </div>
         </div>
       )}
@@ -225,18 +231,27 @@ export default function DynamicDashboard() {
             }}
             className="flex flex-col items-center space-y-3 sm:space-y-4 w-full"
           >
-            {/* 메인 원형 기기 그래픽 및 원형 빛 후광 */}
-            <div className="relative flex items-center justify-center">
+            {/* 메인 원형 기기 그래픽: 클릭 시 상세 페이지로 이동 */}
+            <Link
+              href={`/devices/${activeDevice.id}`}
+              onClick={(e) => {
+                if (Math.abs(dragX) > 10) {
+                  e.preventDefault();
+                }
+              }}
+              className="relative flex items-center justify-center group cursor-pointer transition-transform duration-200"
+              title={`${activeDevice.name} 상세 페이지 이동`}
+            >
               <div
                 className={`absolute -inset-2 sm:-inset-2.5 rounded-full blur-md transition-all duration-500 pointer-events-none z-0 ${
                   activeDevice.status
-                    ? "bg-blue-500/40 dark:bg-blue-500/25 scale-100 opacity-100"
+                    ? "bg-blue-500/40 dark:bg-blue-500/25 scale-100 opacity-100 group-hover:scale-105"
                     : "bg-transparent scale-90 opacity-0"
                 }`}
               />
 
               <div
-                className={`relative z-10 w-48 h-48 sm:w-64 sm:h-64 rounded-full border transition-all duration-300 flex items-center justify-center bg-card shadow-sm ${
+                className={`relative z-10 w-48 h-48 sm:w-64 sm:h-64 rounded-full border transition-all duration-300 flex items-center justify-center bg-card shadow-sm group-hover:scale-[1.02] group-hover:border-primary/60 ${
                   activeDevice.status
                     ? "border-blue-500/50 dark:border-blue-500/40"
                     : "border-border/70 opacity-80"
@@ -258,7 +273,7 @@ export default function DynamicDashboard() {
                   </span>
                 </div>
               </div>
-            </div>
+            </Link>
 
             {/* 기기 명칭 및 상세 정보 */}
             <div className="text-center space-y-1.5 pt-1">
@@ -502,57 +517,6 @@ export default function DynamicDashboard() {
           </div>
         </Link>
       </div>
-
-      {/* 4. 홈 화면 즐겨찾기(홈 표시) 가전 빠른 제어 그리드 */}
-      {pinnedDevices.length > 0 && (
-        <div className="w-full max-w-lg space-y-3 pt-2">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-              <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-              홈 빠른 제어 ({pinnedDevices.length})
-            </span>
-            <Link href="/devices" className="text-[11px] text-muted-foreground hover:text-foreground">
-              전체 관리 ➔
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            {pinnedDevices.map((pDev) => (
-              <div
-                key={pDev.id}
-                onClick={() => setSelectedDeviceId(pDev.id)}
-                className={`p-3 rounded-2xl border transition-all flex items-center justify-between cursor-pointer ${
-                  activeDevice?.id === pDev.id
-                    ? "ring-2 ring-primary/40 border-primary/50 bg-card"
-                    : pDev.status
-                    ? "bg-blue-500/10 border-blue-500/30 hover:border-primary/40"
-                    : "bg-card/60 border-border opacity-75 hover:opacity-100"
-                }`}
-              >
-                <div className="space-y-0.5 truncate mr-2">
-                  <p className="text-xs font-bold text-foreground truncate">{pDev.name}</p>
-                  <p className="text-[10px] text-muted-foreground font-mono">
-                    {pDev.status ? `${pDev.currentPower || 0}W 가동` : "꺼짐"}
-                  </p>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleDeviceStatus(pDev.id);
-                  }}
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${
-                    pDev.status
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/30"
-                      : "bg-accent text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Power className="w-4 h-4 stroke-[2.2]" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

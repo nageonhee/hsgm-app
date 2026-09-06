@@ -3,111 +3,243 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { deviceService } from "@/services/deviceService";
 
-// 심사위원 무마찰 체험 및 RLS 차단 대비 기본 고품질 프리셋 데이터 (총 4종)
+// 심사위원 무마찰 체험 및 RLS 차단 대비 기본 고품질 프리셋 데이터 (총 7종)
 export const DEFAULT_PRESET_DEVICES = [
   {
     id: "preset-aircon-01",
-    name: "거실 무풍 갤러리 에어컨",
-    brand: "삼성전자",
+    name: "LG 휘센 아트 스탠드 에어컨 23평형",
+    brand: "LG전자",
     category: "air_conditioner",
-    model: "AF19TX772VFN",
+    model: "LP-C235PG",
     icon: "AirVent",
     status: true,
-    currentPower: 1450,
-    monthlyUsageKWh: 165,
-    monthlyCost: 38200,
-    annualEstimatedCost: 458400,
+    currentPower: 1600,
+    monthlyUsageKWh: 142.5,
+    monthlyCost: 35600,
+    annualEstimatedCost: 142000,
     energyGrade: 1,
     releaseEnergyGrade: 1,
     isPinned: true,
     createdAt: 1700000001000,
     specs: {
+      area: "23평형 (75.9㎡)",
+      powerConsumption: "1600W",
       releaseYear: "2024",
-      powerConsumption: "1750W",
     },
+    consumables: [
+      {
+        name: "극세필터 & 초미세먼지 플러스 필터",
+        status: "교체 필요 (D-12)",
+        price: 28900,
+        buyUrl: "https://www.lge.co.kr/care-accessories/air-conditioner-filters",
+        lowestPrice: "24,800원",
+      },
+    ],
+    manualUrl: "https://www.lge.co.kr/support/manuals",
     asInfo: {
-      center: "삼성전자 서비스센터",
-      phone: "1588-3366",
-      siteUrl: "https://www.samsungsvc.co.kr",
+      center: "LG전자 서비스센터",
+      phone: "1544-7777",
+      siteUrl: "https://www.lge.co.kr/support/service-engineer-request",
+      warrantyPeriod: "컴프레서 10년 / 일반 2년",
     },
+    isProtectedGuardrail: false,
   },
   {
-    id: "preset-washer-03",
-    name: "인공지능 트롬 세탁기",
-    brand: "LG전자",
-    category: "washer",
-    model: "F24VDD",
-    icon: "WashingMachine",
-    status: false,
-    currentPower: 0,
-    monthlyUsageKWh: 32,
-    monthlyCost: 7200,
-    annualEstimatedCost: 86400,
+    id: "preset-fridge-02",
+    name: "삼성 비스포크 4도어 냉장고",
+    brand: "삼성전자",
+    category: "refrigerator",
+    model: "RF85C9001AP",
+    icon: "Refrigerator",
+    status: true,
+    currentPower: 130,
+    monthlyUsageKWh: 48.2,
+    monthlyCost: 11800,
+    annualEstimatedCost: 61200,
     energyGrade: 1,
     releaseEnergyGrade: 1,
     isPinned: true,
     createdAt: 1700000002000,
     specs: {
-      releaseYear: "2024",
-      powerConsumption: "450W",
+      capacity: "875L",
+      powerConsumption: "35.3kWh/월",
+      releaseYear: "2023",
     },
+    consumables: [
+      {
+        name: "청정제균탈취기 필터",
+        status: "양호 (65% 잔여)",
+        price: 19000,
+        buyUrl: "https://www.samsung.com/sec/accessories",
+        lowestPrice: "16,500원",
+      },
+    ],
+    manualUrl: "https://www.samsung.com/sec/support",
     asInfo: {
-      center: "LG전자 서비스센터",
-      phone: "1544-7777",
-      siteUrl: "https://www.lge.co.kr",
+      center: "삼성전자 서비스",
+      phone: "1588-3366",
+      siteUrl: "https://www.samsungsvc.co.kr/reserve/engineer",
+      warrantyPeriod: "컴프레서 평생보증",
     },
+    isProtectedGuardrail: true,
   },
   {
-    id: "preset-tv-04",
-    name: "스마트 4K OLED TV",
+    id: "preset-washer-03",
+    name: "LG 트롬 드럼 세탁기",
     brand: "LG전자",
-    category: "tv",
-    model: "OLED65C3",
-    icon: "Tv",
+    category: "washer",
+    model: "FX24GNB",
+    icon: "WashingMachine",
     status: false,
     currentPower: 0,
-    monthlyUsageKWh: 28,
-    monthlyCost: 6300,
-    annualEstimatedCost: 75600,
-    energyGrade: 2,
-    releaseEnergyGrade: 2,
-    isPinned: false,
-    createdAt: 1700000003000,
-    specs: {
-      releaseYear: "2023",
-      powerConsumption: "120W",
-    },
-    asInfo: {
-      center: "LG전자 서비스센터",
-      phone: "1544-7777",
-      siteUrl: "https://www.lge.co.kr",
-    },
-  },
-  {
-    id: "preset-fridge-02",
-    name: "키친 오브제 4도어 냉장고",
-    brand: "LG전자",
-    category: "refrigerator",
-    model: "M874AAA451",
-    icon: "Refrigerator",
-    status: true, // 절전 루틴 실행 시에도 안전 가드레일로 켜짐 유지
-    currentPower: 52,
-    monthlyUsageKWh: 36,
-    monthlyCost: 8100,
-    annualEstimatedCost: 97200,
+    monthlyUsageKWh: 24.8,
+    monthlyCost: 6200,
+    annualEstimatedCost: 28000,
     energyGrade: 1,
     releaseEnergyGrade: 1,
     isPinned: true,
+    createdAt: 1700000003000,
+    specs: {
+      capacity: "24kg",
+      powerConsumption: "450W",
+      releaseYear: "2024",
+    },
+    consumables: [
+      {
+        name: "배수 펌프 거름망 & 세제함",
+        status: "세척 권장 (D-5)",
+        price: 12000,
+        buyUrl: "https://www.lge.co.kr/care-accessories/washing-machine-accessories",
+        lowestPrice: "9,800원",
+      },
+    ],
+    manualUrl: "https://www.lge.co.kr/support/manuals",
+    asInfo: {
+      center: "LG전자 서비스센터",
+      phone: "1544-7777",
+      siteUrl: "https://www.lge.co.kr/support/service-engineer-request",
+      warrantyPeriod: "모터 10년",
+    },
+    isProtectedGuardrail: false,
+  },
+  {
+    id: "preset-tv-04",
+    name: "삼성 네오 QLED 75인치 TV",
+    brand: "삼성전자",
+    category: "tv",
+    model: "KQ75QND90AFXKR",
+    icon: "Tv",
+    status: false,
+    currentPower: 0,
+    monthlyUsageKWh: 38.5,
+    monthlyCost: 9400,
+    annualEstimatedCost: 48000,
+    energyGrade: 2,
+    releaseEnergyGrade: 2,
+    isPinned: true,
     createdAt: 1700000004000,
     specs: {
-      releaseYear: "2024",
-      powerConsumption: "52W",
+      screenSize: "75인치 (189cm)",
+      resolution: "4K UHD",
+      powerConsumption: "140W",
+      releaseYear: "2023",
+    },
+    consumables: [],
+    manualUrl: "https://www.samsung.com/sec/support",
+    asInfo: {
+      center: "삼성전자 서비스",
+      phone: "1588-3366",
+      siteUrl: "https://www.samsungsvc.co.kr/reserve/engineer",
+      warrantyPeriod: "패널 2년",
+    },
+    isProtectedGuardrail: false,
+  },
+  {
+    id: "preset-cooker-05",
+    name: "쿠쿠 트윈프레셔 IH 전기밥솥",
+    brand: "쿠쿠전자",
+    category: "cooker",
+    model: "CRP-LHTR1010FW",
+    icon: "Utensils",
+    status: false,
+    currentPower: 0,
+    monthlyUsageKWh: 32.4,
+    monthlyCost: 8100,
+    annualEstimatedCost: 39500,
+    energyGrade: 1,
+    releaseEnergyGrade: 1,
+    isSmartControl: false,
+    isPinned: false,
+    createdAt: 1700000005000,
+    specs: {
+      capacity: "10인용",
+      powerConsumption: "1455W",
+      releaseYear: "2022",
+    },
+    asInfo: {
+      center: "쿠쿠 고객만족센터",
+      phone: "1588-8899",
+      siteUrl: "https://www.cuckoo.co.kr",
+    },
+    isProtectedGuardrail: false,
+  },
+  {
+    id: "preset-purifier-06",
+    name: "LG 퓨리케어 360˚ 공기청정기",
+    brand: "LG전자",
+    category: "air_purifier",
+    model: "AS304DWFA",
+    icon: "Wind",
+    status: false,
+    currentPower: 0,
+    monthlyUsageKWh: 16.2,
+    monthlyCost: 4100,
+    annualEstimatedCost: 19800,
+    energyGrade: 2,
+    releaseEnergyGrade: 2,
+    isSmartControl: true,
+    isPinned: false,
+    createdAt: 1700000006000,
+    specs: {
+      area: "30평형",
+      powerConsumption: "70W",
+      releaseYear: "2023",
     },
     asInfo: {
       center: "LG전자 서비스센터",
       phone: "1544-7777",
       siteUrl: "https://www.lge.co.kr",
     },
+    isProtectedGuardrail: false,
+  },
+  {
+    id: "preset-robot-07",
+    name: "로보락 S8 Pro Ultra 로봇청소기",
+    brand: "로보락",
+    category: "robot_cleaner",
+    model: "S8PU-01",
+    icon: "Disc",
+    status: false,
+    currentPower: 0,
+    monthlyUsageKWh: 8.4,
+    monthlyCost: 2100,
+    annualEstimatedCost: 9800,
+    energyGrade: 1,
+    releaseEnergyGrade: 1,
+    isSmartControl: true,
+    isPinned: false,
+    createdAt: 1700000007000,
+    specs: {
+      battery: "5200mAh",
+      suction: "6000Pa",
+      releaseYear: "2024",
+    },
+    asInfo: {
+      center: "로보락 고객센터",
+      phone: "1588-0000",
+      siteUrl: "https://roborock.co.kr",
+    },
+    isProtectedGuardrail: false,
   },
 ];
 
@@ -132,7 +264,7 @@ export const sortDevices = (list) => {
   });
 };
 
-const STORAGE_KEY = "hsgm_devices_v1";
+const STORAGE_KEY = "hsgm_devices_v4";
 
 const DeviceContext = createContext(null);
 
@@ -153,7 +285,7 @@ export function DeviceProvider({ children }) {
 
   // 1. 초기 가전 목록 로드
   const fetchDevices = useCallback(async () => {
-    // 1-A: 로컬 캐시가 있으면 먼저 즉시 로드
+    // 1-A: 로컬 캐시가 있고 데이터가 2개 이상 유효하면 로드
     let cached = null;
     if (typeof window !== "undefined") {
       try {
@@ -166,22 +298,20 @@ export function DeviceProvider({ children }) {
       }
     }
 
-    if (cached && Array.isArray(cached) && cached.length >= 0) {
-      // 캐시가 존재하면 (0개인 경우 포함) 캐시 우선 설정
+    if (cached && Array.isArray(cached) && cached.length > 1) {
       setDevices(sortDevices(cached));
       setLoading(false);
       return;
     }
 
-    // 1-B: 캐시가 없을 때 DB 조회 시도
+    // 1-B: 캐시가 없거나 1개 이하일 때 기본 프리셋 데모 데이터 주입
     try {
       const data = await deviceService.getDevices();
-      if (data && data.length > 0) {
+      if (data && data.length > 1) {
         const sorted = sortDevices(data);
         setDevices(sorted);
         saveLocalDevices(sorted);
       } else {
-        // 첫 방문 시 프리셋 데이터 주입
         const sortedPreset = sortDevices(DEFAULT_PRESET_DEVICES);
         setDevices(sortedPreset);
         saveLocalDevices(sortedPreset);
@@ -329,6 +459,14 @@ export function DeviceProvider({ children }) {
     }
   };
 
+  // 8. 시연 기본 프리셋 데이터 원상 복구
+  const restoreDefaultDevices = () => {
+    const sortedPreset = sortDevices(DEFAULT_PRESET_DEVICES);
+    setDevices(sortedPreset);
+    saveLocalDevices(sortedPreset);
+    return sortedPreset;
+  };
+
   return (
     <DeviceContext.Provider
       value={{
@@ -340,6 +478,7 @@ export function DeviceProvider({ children }) {
         togglePinDevice,
         addDevice,
         deleteDevice,
+        restoreDefaultDevices,
         sortDevices,
       }}
     >

@@ -414,18 +414,8 @@ export default function AddDevicePage() {
           </Button>
           <Badge className="bg-primary/20 text-primary border-primary/30 text-xs flex items-center gap-1">
             <Sparkles className="w-3 h-3" />
-            AI 대화형 스마트 스캔
+            AI 스마트 스캔
           </Badge>
-        </div>
-
-        {/* 타이틀 */}
-        <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight">
-            스마트 가전/기기 사진 등록
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            사진을 찍으면 AI가 큰 범주에서 세부 모델명까지 좁혀가며 정확한 성능과 전기요금을 자동 조회합니다.
-          </p>
         </div>
 
         {/* 에러 및 Fallback 배너 */}
@@ -449,47 +439,10 @@ export default function AddDevicePage() {
           </div>
         )}
 
-        {/* ── STEP 1: 촬영 / 업로드 / 심사위원 원클릭 테스트 ── */}
+        {/* ── STEP 1: 촬영 / 업로드 / 시연용 테스트 ── */}
         {step === "select_scan" && (
           <div className="space-y-4">
-            {/* 심사위원 전용 1초 샘플 테스트 배너 */}
-            <div className="p-4 rounded-3xl bg-gradient-to-r from-primary/15 via-primary/5 to-transparent border border-primary/30 space-y-2.5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold text-primary flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  심사위원 평가용 실시간 AI 계층 탐색 원클릭 테스트
-                </span>
-                <span className="text-[10px] text-muted-foreground">실물 불필요</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                실물 기기가 없으신 경우, 아래 버튼을 눌러 노트북/가전 외형을 즉시 분석하고 제조사-라인업-세부모델로 좁혀가는 AI 대화형 탐색을 바로 체험해보실 수 있습니다.
-              </p>
-              <div className="grid grid-cols-3 gap-2 pt-1">
-                <button
-                  onClick={() => handleSampleTest("laptop")}
-                  className="px-2.5 py-2 rounded-xl bg-background/80 hover:bg-background border border-primary/40 text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
-                >
-                  <Laptop className="w-3.5 h-3.5 text-sky-500" />
-                  <span>노트북 외형 테스트</span>
-                </button>
-                <button
-                  onClick={() => handleSampleTest("aircon")}
-                  className="px-2.5 py-2 rounded-xl bg-background/80 hover:bg-background border border-primary/40 text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
-                >
-                  <Zap className="w-3.5 h-3.5 text-blue-500" />
-                  <span>무풍에어컨 테스트</span>
-                </button>
-                <button
-                  onClick={() => handleSampleTest("washer")}
-                  className="px-2.5 py-2 rounded-xl bg-background/80 hover:bg-background border border-primary/40 text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
-                >
-                  <Zap className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>AI세탁기 테스트</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 카메라 뷰파인더 */}
+            {/* 1. 최상단: 카메라 뷰파인더 */}
             <div className="relative rounded-3xl overflow-hidden bg-black aspect-[3/4] sm:aspect-[4/3] w-full border border-border shadow-2xl flex flex-col items-center justify-center">
               <video
                 ref={videoRef}
@@ -514,7 +467,7 @@ export default function AddDevicePage() {
               </div>
             </div>
 
-            {/* 촬영 / 파일 업로드 / 수동 입력 버튼 */}
+            {/* 2. 촬영 / 파일 업로드 / 수동 입력 버튼 */}
             <div className="space-y-2 pt-1">
               <button
                 onClick={handleCapture}
@@ -549,6 +502,40 @@ export default function AddDevicePage() {
                   <FileText className="w-3.5 h-3.5 text-amber-400" />
                   직접 수동 입력
                 </Button>
+              </div>
+            </div>
+
+            {/* 3. 최하단: 시연용 원클릭 테스트 배너 */}
+            <div className="p-4 rounded-3xl bg-muted/40 border border-border space-y-2.5 shadow-sm mt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold text-muted-foreground flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  시연용 원클릭 테스트
+                </span>
+                <span className="text-[10px] text-muted-foreground">실물 사진 없이 테스트</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 pt-0.5">
+                <button
+                  onClick={() => handleSampleTest("laptop")}
+                  className="px-2.5 py-2 rounded-xl bg-background hover:bg-accent border border-border text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <Laptop className="w-3.5 h-3.5 text-sky-500" />
+                  <span>노트북 외형</span>
+                </button>
+                <button
+                  onClick={() => handleSampleTest("aircon")}
+                  className="px-2.5 py-2 rounded-xl bg-background hover:bg-accent border border-border text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <Zap className="w-3.5 h-3.5 text-blue-500" />
+                  <span>무풍에어컨</span>
+                </button>
+                <button
+                  onClick={() => handleSampleTest("washer")}
+                  className="px-2.5 py-2 rounded-xl bg-background hover:bg-accent border border-border text-foreground text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <Zap className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>AI세탁기</span>
+                </button>
               </div>
             </div>
           </div>
