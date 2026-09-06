@@ -11,6 +11,7 @@ import {
   MoreVertical,
   LogOut,
   User,
+  Settings,
   Moon,
   Sun,
   Check,
@@ -166,13 +167,10 @@ export function Header() {
               <DropdownMenuContent align="end" className="w-48 bg-popover border-border p-1">
                 <DropdownMenuLabel className="truncate">{user?.email || "사용자"}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
-                    window.location.href = "/auth/login";
-                  }}
-                  className="cursor-pointer text-xs"
-                >
-                  <User className="w-4 h-4 mr-2" /> 계정 전환
+                <DropdownMenuItem asChild className="cursor-pointer text-xs">
+                  <Link href="/settings" className="flex items-center w-full">
+                    <Settings className="w-4 h-4 mr-2" /> 설정 및 계정 관리
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => signOut()} className="text-destructive cursor-pointer text-xs">
                   <LogOut className="w-4 h-4 mr-2" /> 로그아웃
