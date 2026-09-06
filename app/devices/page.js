@@ -140,16 +140,20 @@ export default function DevicesPage() {
                         {device.brand}
                       </span>
                       <button
-                        onClick={() => togglePinDevice(device.id)}
-                        className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold transition-colors border ${
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePinDevice(device.id);
+                        }}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all border shadow-xs ${
                           device.isPinned
-                            ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
-                            : "bg-muted text-muted-foreground hover:bg-accent border-border"
+                            ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40"
+                            : "bg-muted/70 text-muted-foreground hover:bg-accent border-border"
                         }`}
-                        title={device.isPinned ? "홈 화면에서 숨기기" : "홈 화면에 띄우기"}
+                        title={device.isPinned ? "클릭 시 홈 화면에서 숨기기" : "클릭 시 홈 화면에 표시"}
                       >
-                        <Star className={`w-3 h-3 ${device.isPinned ? "fill-amber-500" : ""}`} />
-                        홈 표시
+                        <Star className={`w-3.5 h-3.5 ${device.isPinned ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
+                        <span>{device.isPinned ? "홈 표시 중" : "홈 미표시"}</span>
                       </button>
                       <Badge variant="outline" className="text-[10px] bg-accent/50 border-border px-1.5 py-0 font-medium">
                         에너지 {device.energyGrade}등급

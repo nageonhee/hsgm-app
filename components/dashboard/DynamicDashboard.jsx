@@ -44,15 +44,10 @@ export default function DynamicDashboard() {
   const tabsContainerRef = useRef(null);
 
   // 1. 홈 화면에 표시할 기기 필터링:
-  // - 제품관리에서 '홈 표시'로 선택된(isPinned === true) 기기만 표시
-  // - 사용자가 아무것도 설정하지 않았을 때는 상위 제품 1개만 기본 표시
+  // - 제품관리에서 '홈 표시'로 선택된(isPinned === true) 기기만 엄격히 표시
   const homeDevices = useMemo(() => {
     if (!devices || devices.length === 0) return [];
-    const pinned = devices.filter((d) => d.isPinned === true);
-    if (pinned.length === 0) {
-      return [devices[0]]; // 사용자가 아무것도 안 건드렸을 때 상위 1개만 노출
-    }
-    return pinned;
+    return devices.filter((d) => Boolean(d.isPinned));
   }, [devices]);
 
   // 2. 홈 화면 기기 목록이 변경될 때 선택된 기기 자동 동기화
@@ -287,7 +282,7 @@ export default function DynamicDashboard() {
           >
             <div
               ref={tabsContainerRef}
-              className="inline-flex items-center justify-center gap-1.5 p-1.5 bg-muted/60 rounded-full border border-border shadow-xs overflow-x-auto max-w-full scrollbar-none touch-pan-x snap-x"
+              className="flex items-center gap-1.5 p-1.5 bg-muted/60 rounded-full border border-border shadow-xs overflow-x-auto max-w-full scrollbar-none touch-pan-x snap-x px-2 mx-auto"
             >
               {homeDevices.map((device) => {
                 const isSelected = activeDevice?.id === device.id;
