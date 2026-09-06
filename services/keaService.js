@@ -1,7 +1,7 @@
 /**
  * 한국에너지공단(KEA) 공공데이터 OpenAPI 통합 클라이언트
  * 1. 고효율 에너지기자재 인증제품 정보 (B553530/CRTIF)
- * 2. 효율관리기자재 신고제품 정보 (B553530/eep)
+ * 2. 효율관리기자재 운용규정 신고제품 정보 (B553530/eep)
  */
 
 export const keaService = {
@@ -12,29 +12,45 @@ export const keaService = {
   async searchDeviceByModel(modelName) {
     if (!modelName || modelName.trim().length < 2) return null;
 
-    const rawKey = process.env.KEA_API_KEY;
-    if (!rawKey) {
+    const crtifRawKey = process.env.KEA_CRTIF_API_KEY || process.env.KEA_API_KEY;
+    const eepRawKey = process.env.KEA_EEP_API_KEY || process.env.KEA_API_KEY;
+
+    if (!crtifRawKey && !eepRawKey) {
       return null;
     }
 
     try {
-      const cleanKey = decodeURIComponent(rawKey);
-      const encodedKey = encodeURIComponent(cleanKey);
       const cleanQuery = encodeURIComponent(modelName.trim());
 
-      // 한국에너지공단 공식 OpenAPI 엔드포인트 목록
-      const candidateUrls = [
+      const getEncodedKey = (keyStr) => {
+        if (!keyStr) return "";
+        return encodeURIComponent(decodeURIComponent(keyStr));
+      };
+
+      const crtifKey = getEncodedKey(crtifRawKey);
+      const eepKey = getEncodedKey(eepRawKey);
+
+      // 한국에너지공단 2대 OpenAPI 엔드포인트 목록
+      const candidateRequests = [
         // 1. 고효율 에너지기자재 인증제품 정보 (CRTIF)
-        `https://apis.data.go.kr/B553530/CRTIF/getCrtifList?serviceKey=${encodedKey}&pageNo=1&numOfRows=5&modelNm=${cleanQuery}&_type=json`,
-        `https://apis.data.go.kr/B553530/CRTIF/search?serviceKey=${encodedKey}&pageNo=1&numOfRows=5&keyword=${cleanQuery}&_type=json`,
-        `https://apis.data.go.kr/B553530/CRTIF/getCrtifSearchList?serviceKey=${encodedKey}&pageNo=1&numOfRows=5&model=${cleanQuery}&_type=json`,
+        ...(crtifKey
+          ? [
+              `https://apis.data.go.kr/B553530/CRTIF/getCrtifList?serviceKey=${crtifKey}&pageNo=1&numOfRows=5&modelNm=${cleanQuery}&_type=json`,
+              `https://apis.data.go.kr/B553530/CRTIF/search?serviceKey=${crtifKey}&pageNo=1&numOfRows=5&keyword=${cleanQuery}&_type=json`,
+              `https://apis.data.go.kr/B553530/CRTIF/getCrtifSearchList?serviceKey=${crtifKey}&pageNo=1&numOfRows=5&model=${cleanQuery}&_type=json`,
+            ]
+          : []),
         // 2. 효율관리기자재 운용규정 신고제품 정보 (eep)
-        `https://apis.data.go.kr/B553530/eep/search?serviceKey=${encodedKey}&pageNo=1&numOfRows=5&keyword=${cleanQuery}&_type=json`,
-        `https://apis.data.go.kr/B553530/eep/getEepSearchList?serviceKey=${encodedKey}&pageNo=1&numOfRows=5&modelNm=${cleanQuery}&_type=json`,
-        `https://apis.data.go.kr/B553530/eep/getEepList?serviceKey=${encodedKey}&pageNo=1&numOfRows=5&model=${cleanQuery}&_type=json`,
+        ...(eepKey
+          ? [
+              `https://apis.data.go.kr/B553530/eep/search?serviceKey=${eepKey}&pageNo=1&numOfRows=5&keyword=${cleanQuery}&_type=json`,
+              `https://apis.data.go.kr/B553530/eep/getEepSearchList?serviceKey=${eepKey}&pageNo=1&numOfRows=5&modelNm=${cleanQuery}&_type=json`,
+              `https://apis.data.go.kr/B553530/eep/getEepList?serviceKey=${eepKey}&pageNo=1&numOfRows=5&model=${cleanQuery}&_type=json`,
+            ]
+          : []),
       ];
 
-      for (const url of candidateUrls) {
+      for (const url of candidateRequests) {
         try {
           const res = await fetch(url, {
             headers: { Accept: "application/json" },
