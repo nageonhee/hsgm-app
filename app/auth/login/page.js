@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { Zap, Lock, Mail, ArrowRight, Sparkles } from "lucide-react";
+import { Lock, Mail, ArrowRight, Sparkles, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -55,35 +55,35 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
-      {/* Background Neon Blurs */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
+      {/* Background Subtle Gradient Glows */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md space-y-5 relative z-10 animate-in fade-in zoom-in-95 duration-300">
-        {/* Brand Header */}
-        <div className="text-center space-y-1.5">
-          <div className="w-14 h-14 rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/30 mb-2.5">
-            <Zap className="w-8 h-8 text-black stroke-[2.5]" />
+      <div className="w-full max-w-md space-y-6 relative z-10 animate-in fade-in zoom-in-95 duration-300">
+        {/* Brand Header & Official Logo */}
+        <div className="text-center space-y-2">
+          <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto shadow-xl shadow-primary/25 mb-3 text-primary-foreground font-black text-2xl tracking-tighter">
+            H
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
             HSGM 스마트 에너지
           </h1>
-          <p className="text-xs text-muted-foreground font-semibold">
+          <p className="text-xs text-muted-foreground font-medium">
             제조사 통합 스마트 가전 에너지 관리 솔루션
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="rounded-3xl bg-card/80 border border-border p-6 sm:p-7 backdrop-blur-xl shadow-2xl space-y-4">
+        <div className="rounded-3xl bg-card border border-border p-6 sm:p-7 backdrop-blur-xl shadow-2xl space-y-4">
           {errorMsg && (
-            <div className="p-3 rounded-2xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-semibold animate-in fade-in">
+            <div className="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold animate-in fade-in">
               {errorMsg}
             </div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-3.5">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground">
                 이메일 계정
               </label>
               <div className="relative">
@@ -91,16 +91,16 @@ export default function LoginPage() {
                 <Input
                   type="email"
                   required
-                  placeholder="green_smart@hsgm.energy"
+                  placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-11 rounded-2xl bg-accent/50 border-border text-xs focus-visible:ring-emerald-400"
+                  className="pl-10 h-11 rounded-2xl bg-accent/40 border-border text-xs focus-visible:ring-primary"
                 />
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground">
                 비밀번호
               </label>
               <div className="relative">
@@ -111,7 +111,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 h-11 rounded-2xl bg-accent/50 border-border text-xs focus-visible:ring-emerald-400"
+                  className="pl-10 h-11 rounded-2xl bg-accent/40 border-border text-xs focus-visible:ring-primary"
                 />
               </div>
             </div>
@@ -119,7 +119,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-black font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-500/20 gap-2 mt-1"
+              className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs sm:text-sm rounded-2xl shadow-lg shadow-primary/20 gap-2 mt-2"
             >
               <span>{loading ? "인증 확인 중..." : "로그인하기"}</span>
               <ArrowRight className="w-4 h-4 stroke-[2.5]" />
@@ -127,12 +127,12 @@ export default function LoginPage() {
           </form>
 
           {/* Quick Demo Access Button */}
-          <div className="pt-2 border-t border-border space-y-2">
+          <div className="pt-3 border-t border-border space-y-2">
             <Button
               type="button"
               variant="outline"
               onClick={handleDemoLogin}
-              className="w-full h-11 rounded-2xl border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold text-xs gap-2"
+              className="w-full h-11 rounded-2xl border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs gap-2"
             >
               <Sparkles className="w-4 h-4" />
               <span>시연용 계정으로 1초 즉시 시작하기</span>
@@ -141,7 +141,7 @@ export default function LoginPage() {
 
           <div className="text-center text-xs text-muted-foreground pt-1">
             계정이 없으신가요?{" "}
-            <Link href="/auth/signup" className="text-emerald-400 font-bold hover:underline">
+            <Link href="/auth/signup" className="text-primary font-bold hover:underline">
               회원가입
             </Link>
           </div>

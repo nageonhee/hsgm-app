@@ -104,7 +104,7 @@ export function AuthProvider({ children }) {
   const formatAuthError = (err) => {
     const msg = err?.message || String(err);
     if (msg.includes("Invalid login credentials")) {
-      return "이메일 또는 비밀번호가 일치하지 않습니다. (Supabase 가입 여부 및 비밀번호를 확인해주세요)";
+      return "이메일 또는 비밀번호가 일치하지 않습니다.";
     }
     if (msg.includes("Email not confirmed")) {
       return "이메일 인증이 완료되지 않은 계정입니다. Supabase 대시보드(Authentication -> Providers -> Email)에서 'Confirm email' 설정을 끄시거나 이메일 인증을 진행해주세요.";
