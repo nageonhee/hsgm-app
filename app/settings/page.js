@@ -46,9 +46,12 @@ export default function SettingsPage() {
   // IoT C2C 계정 연동 상태 및 가전 일괄 불러오기 스태이트
   const [stConnected, setStConnected] = useState(true); // 기본 연동됨 예시
   const [tuyaConnected, setTuyaConnected] = useState(false);
+  const [lgConnected, setLgConnected] = useState(true); // 기본 연동됨 예시
+  const [activeVendorModal, setActiveVendorModal] = useState("smartthings"); // "smartthings" | "lg"
   const [isSyncingIoT, setIsSyncingIoT] = useState(false);
   const [isFetchModalOpen, setIsFetchModalOpen] = useState(false);
-  const [fetchedDevices, setFetchedDevices] = useState([
+
+  const [stDevicesList, setStDevicesList] = useState([
     {
       id: "st-dev-1",
       name: "삼성 무풍에어컨 갤러리",
@@ -96,6 +99,39 @@ export default function SettingsPage() {
     },
   ]);
 
+  const [lgDevicesList, setLgDevicesList] = useState([
+    {
+      id: "lg-dev-1",
+      name: "LG 휘센 타워2 에어컨",
+      brand: "LG전자",
+      model: "FQ18SDTHC1",
+      category: "air_conditioner",
+      icon: "AirVent",
+      power: "1850W",
+      monthlyUsageKWh: 172.0,
+      monthlyCost: 34500,
+      energyGrade: 1,
+      controlType: "c2c_thinq",
+      isSmartControl: true,
+      selected: true,
+    },
+    {
+      id: "lg-dev-2",
+      name: "LG 트롬 오브제컬렉션 세탁기",
+      brand: "LG전자",
+      model: "FX24GNG",
+      category: "washing_machine",
+      icon: "WashingMachine",
+      power: "450W",
+      monthlyUsageKWh: 31.0,
+      monthlyCost: 8200,
+      energyGrade: 1,
+      controlType: "c2c_thinq",
+      isSmartControl: true,
+      selected: true,
+    },
+  ]);
+
   const { addDevice } = useDevices();
 
   const handleConnectSmartThings = () => {
@@ -108,8 +144,8 @@ export default function SettingsPage() {
       setTimeout(() => {
         setIsSyncingIoT(false);
         setStConnected(true);
-        alert("Samsung 계정이 성공적으로 연동되었습니다! [가전 한 번에 불러오기]를 실행해보세요.");
-      }, 1000);
+        alert("Samsung 계정이 성공적으로 연동되었습니다!");
+      }, 800);
     }
   };
 
@@ -122,18 +158,43 @@ export default function SettingsPage() {
     }
   };
 
+  const handleConnectLg = () => {
+    if (lgConnected) {
+      if (confirm("LG ThinQ Connect 연동을 해제하시겠습니까?")) {
+        setLgConnected(false);
+      }
+    } else {
+      setLgConnected(true);
+      alert("LG ThinQ 계정이 성공적으로 연동되었습니다!");
+    }
+  };
+
   const handleFetchSmartThingsDevices = () => {
+    setActiveVendorModal("smartthings");
+    setIsFetchModalOpen(true);
+  };
+
+  const handleFetchLgDevices = () => {
+    setActiveVendorModal("lg");
     setIsFetchModalOpen(true);
   };
 
   const toggleDeviceSelection = (id) => {
-    setFetchedDevices((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, selected: !d.selected } : d))
-    );
+    if (activeVendorModal === "smartthings") {
+      setStDevicesList((prev) =>
+        prev.map((d) => (d.id === id ? { ...d, selected: !d.selected } : d))
+      );
+    } else {
+      setLgDevicesList((prev) =>
+        prev.map((d) => (d.id === id ? { ...d, selected: !d.selected } : d))
+      );
+    }
   };
 
   const handleBatchImportDevices = async () => {
-    const targets = fetchedDevices.filter((d) => d.selected);
+    const activeList = activeVendorModal === "smartthings" ? stDevicesList : lgDevicesList;
+    const targets = activeList.filter((d) => d.selected);
+
     if (targets.length === 0) {
       alert("등록할 기기를 최소 1개 이상 선택해 주세요.");
       return;
@@ -153,12 +214,16 @@ export default function SettingsPage() {
           annualEstimatedCost: dev.monthlyCost * 12,
           energyGrade: dev.energyGrade,
           isSmartControl: true,
-          controlType: "c2c_smartthings",
+          controlType: dev.controlType,
           specs: { powerConsumption: dev.power, releaseYear: "2024" },
         });
       }
       setIsFetchModalOpen(false);
-      alert(`스마트싱스 기기 ${targets.length}개가 인벤토리에 성공적으로 등록되었습니다!`);
+      alert(
+        `${
+          activeVendorModal === "smartthings" ? "삼성 SmartThings" : "LG ThinQ"
+        } 기기 ${targets.length}개가 인벤토리에 성공적으로 등록되었습니다!`
+      );
     } catch (e) {
       alert("기기 등록 중 오류 발생: " + e.message);
     }
@@ -368,20 +433,51 @@ export default function SettingsPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-xs sm:text-sm font-bold text-foreground">LG ThinQ Connect</h3>
-                      <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-border">
-                        준비 중 (공식 Open API 파트너십)
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] ${
+                          lgConnected
+                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                            : "bg-muted text-muted-foreground border-border"
+                        }`}
+                      >
+                        {lgConnected ? "계정 연동 완료" : "미연동"}
                       </Badge>
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      LG 휘센 에어컨, 트롬 세탁기, 오브제 컬렉션 지원 예정
+                      LG 휘센 타워 에어컨, 트롬 세탁기, 오브제컬렉션 지원
                     </p>
                   </div>
                 </div>
 
-                <Button variant="outline" size="sm" disabled className="h-9 px-3.5 rounded-xl text-xs font-bold border-border opacity-50">
-                  순차 오픈 예정
+                <Button
+                  variant={lgConnected ? "outline" : "default"}
+                  size="sm"
+                  onClick={handleConnectLg}
+                  className={`h-9 px-3.5 rounded-xl text-xs font-bold gap-1.5 shadow-xs ${
+                    !lgConnected ? "bg-red-600 hover:bg-red-700 text-white" : "border-border"
+                  }`}
+                >
+                  {lgConnected ? "연동 해제" : "LG 계정 연동하기"}
                 </Button>
               </div>
+
+              {lgConnected && (
+                <div className="pt-2 border-t border-border/60 flex items-center justify-between">
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    LG ThinQ 가전 2개가 탐색되었습니다.
+                  </span>
+                  <Button
+                    size="sm"
+                    onClick={handleFetchLgDevices}
+                    className="h-8 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-bold gap-1 shadow-xs"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    LG 가전 한 번에 불러오기
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -586,32 +682,46 @@ export default function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* 삼성 SmartThings C2C 가전 한 번에 불러오기 모달 */}
+      {/* C2C 스마트 가전 한 번에 불러오기 모달 (삼성 SmartThings / LG ThinQ 공용) */}
       <Dialog open={isFetchModalOpen} onOpenChange={setIsFetchModalOpen}>
         <DialogContent className="sm:max-w-lg bg-card/95 backdrop-blur-xl border border-border p-6 rounded-3xl shadow-2xl space-y-4">
           <DialogHeader className="space-y-1.5">
             <div className="flex items-center justify-between">
               <DialogTitle className="text-lg font-bold flex items-center gap-2">
-                <Zap className="w-5 h-5 text-blue-500" />
-                SmartThings 가전 한 번에 불러오기
+                <Zap
+                  className={`w-5 h-5 ${
+                    activeVendorModal === "smartthings" ? "text-blue-500" : "text-red-500"
+                  }`}
+                />
+                {activeVendorModal === "smartthings"
+                  ? "SmartThings 가전 한 번에 불러오기"
+                  : "LG ThinQ 가전 한 번에 불러오기"}
               </DialogTitle>
-              <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[10px] font-bold">
-                OAuth 2.0 연동
+              <Badge
+                className={`text-[10px] font-bold ${
+                  activeVendorModal === "smartthings"
+                    ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                    : "bg-red-500/10 text-red-500 border-red-500/20"
+                }`}
+              >
+                OAuth 2.0 C2C 연동
               </Badge>
             </div>
             <DialogDescription className="text-xs text-muted-foreground">
-              삼성 계정에서 탐색된 가전 목록입니다. 등록할 기기를 선택하여 우리 앱 인벤토리에 일괄 추가하세요.
+              {activeVendorModal === "smartthings" ? "삼성 계정" : "LG 계정"}에서 탐색된 가전 목록입니다. 등록할 기기를 선택하여 우리 앱 인벤토리에 일괄 추가하세요.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
-            {fetchedDevices.map((dev) => (
+            {(activeVendorModal === "smartthings" ? stDevicesList : lgDevicesList).map((dev) => (
               <div
                 key={dev.id}
                 onClick={() => toggleDeviceSelection(dev.id)}
                 className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                   dev.selected
-                    ? "bg-blue-500/10 border-blue-500/40 shadow-xs"
+                    ? activeVendorModal === "smartthings"
+                      ? "bg-blue-500/10 border-blue-500/40 shadow-xs"
+                      : "bg-red-500/10 border-red-500/40 shadow-xs"
                     : "bg-accent/30 border-border opacity-60"
                 }`}
               >
@@ -620,7 +730,11 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={dev.selected}
                     onChange={() => {}}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                    className={`w-4 h-4 rounded ${
+                      activeVendorModal === "smartthings"
+                        ? "text-blue-600 focus:ring-blue-500"
+                        : "text-red-600 focus:ring-red-500"
+                    }`}
                   />
                   <div>
                     <h4 className="text-xs sm:text-sm font-bold text-foreground">{dev.name}</h4>
@@ -649,10 +763,18 @@ export default function SettingsPage() {
             <Button
               type="button"
               onClick={handleBatchImportDevices}
-              className="h-10 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 gap-1.5"
+              className={`h-10 rounded-xl text-xs font-bold text-white shadow-md gap-1.5 ${
+                activeVendorModal === "smartthings"
+                  ? "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
+                  : "bg-red-600 hover:bg-red-700 shadow-red-600/20"
+              }`}
             >
               <CheckCircle2 className="w-4 h-4" />
-              선택한 {fetchedDevices.filter((d) => d.selected).length}개 가전 일괄 등록하기
+              선택한{" "}
+              {(activeVendorModal === "smartthings" ? stDevicesList : lgDevicesList).filter(
+                (d) => d.selected
+              ).length}
+              개 가전 일괄 등록하기
             </Button>
           </DialogFooter>
         </DialogContent>

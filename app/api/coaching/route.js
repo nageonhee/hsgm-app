@@ -59,25 +59,44 @@ export async function POST(req) {
       text: `${systemPrompt}\n\n사용자 질문: ${lastMessage || "현재 가전 상태를 점검해줘."}`,
     });
 
-    // 4. env 파일 지정 모델 사용 (기본값 gemini-2.0-flash)
-    const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+    // 4. env 파일 지정 모델 및 fallback 모델 설정
+    const envModel = process.env.GEMINI_MODEL;
+    const targetModels = [
+      ...(envModel ? [envModel] : []),
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+    ].filter((v, i, a) => a.indexOf(v) === i);
 
-    // 5. 구글 Gemini API 실시간 SSE 스트리밍 호출
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts }],
-        }),
+    let geminiRes = null;
+    let lastErrorMsg = "";
+
+    for (const m of targetModels) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${m}:streamGenerateContent?alt=sse&key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts }],
+            }),
+          }
+        );
+
+        if (res.ok) {
+          geminiRes = res;
+          break;
+        } else {
+          const errData = await res.json().catch(() => null);
+          lastErrorMsg = errData?.error?.message || `Gemini API (${m}) 호출 실패 (${res.status})`;
+        }
+      } catch (e) {
+        lastErrorMsg = e.message;
       }
-    );
+    }
 
-    if (!geminiRes.ok) {
-      const errData = await geminiRes.json().catch(() => null);
-      const errMsg = errData?.error?.message || `Gemini API 호출 실패 (${geminiRes.status})`;
-      throw new Error(errMsg);
+    if (!geminiRes || !geminiRes.ok) {
+      throw new Error(lastErrorMsg || "모든 Gemini AI 모델 통신에 실패했습니다.");
     }
 
     // 6. Gemini SSE 응답을 실시간으로 디코딩하여 프론트엔드로 파이프 전달
