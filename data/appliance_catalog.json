@@ -16,6 +16,7 @@
         "monthlyUsageKWh": 142.5,
         "monthlyCost": 35600,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
         "warrantyPeriod": "컴프레서 10년 / 일반 2년"
       },
       {
@@ -27,6 +28,7 @@
         "monthlyUsageKWh": 128.0,
         "monthlyCost": 31200,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
         "warrantyPeriod": "컴프레서 10년 / 일반 2년"
       },
       {
@@ -38,6 +40,7 @@
         "monthlyUsageKWh": 45.0,
         "monthlyCost": 11000,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
         "warrantyPeriod": "컴프레서 10년 / 일반 2년"
       }
     ],
@@ -71,6 +74,7 @@
         "monthlyUsageKWh": 138.0,
         "monthlyCost": 34500,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
         "warrantyPeriod": "디지털 인버터 평생보증"
       },
       {
@@ -82,6 +86,7 @@
         "monthlyUsageKWh": 125.0,
         "monthlyCost": 30500,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
         "warrantyPeriod": "디지털 인버터 평생보증"
       },
       {
@@ -93,6 +98,7 @@
         "monthlyUsageKWh": 40.0,
         "monthlyCost": 9800,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
         "warrantyPeriod": "디지털 인버터 평생보증"
       }
     ],
@@ -125,6 +131,7 @@
         "monthlyUsageKWh": 35.3,
         "monthlyCost": 8800,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
         "warrantyPeriod": "컴프레서 평생보증"
       },
       {
@@ -135,6 +142,7 @@
         "monthlyUsageKWh": 38.5,
         "monthlyCost": 9600,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2022",
         "warrantyPeriod": "컴프레서 평생보증"
       },
       {
@@ -145,6 +153,7 @@
         "monthlyUsageKWh": 31.2,
         "monthlyCost": 7800,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
         "warrantyPeriod": "컴프레서 평생보증"
       }
     ],
@@ -177,6 +186,7 @@
         "monthlyUsageKWh": 34.8,
         "monthlyCost": 8700,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
         "warrantyPeriod": "인버터 리니어 컴프레서 10년"
       },
       {
@@ -187,6 +197,7 @@
         "monthlyUsageKWh": 30.5,
         "monthlyCost": 7600,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
         "warrantyPeriod": "인버터 리니어 컴프레서 10년"
       }
     ],
@@ -219,6 +230,7 @@
         "monthlyUsageKWh": 24.8,
         "monthlyCost": 6200,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
         "warrantyPeriod": "DD 모터 10년"
       },
       {
@@ -229,6 +241,7 @@
         "monthlyUsageKWh": 22.5,
         "monthlyCost": 5600,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
         "warrantyPeriod": "DD 모터 10년"
       }
     ],
@@ -261,6 +274,7 @@
         "monthlyUsageKWh": 25.2,
         "monthlyCost": 6300,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
         "warrantyPeriod": "디지털 인버터 모터 평생보증"
       },
       {
@@ -271,6 +285,7 @@
         "monthlyUsageKWh": 23.0,
         "monthlyCost": 5750,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2022",
         "warrantyPeriod": "디지털 인버터 모터 평생보증"
       }
     ],
@@ -303,6 +318,7 @@
         "monthlyUsageKWh": 32.4,
         "monthlyCost": 8100,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2021",
         "warrantyPeriod": "패킹 1년 / 모터 3년"
       },
       {
@@ -313,6 +329,7 @@
         "monthlyUsageKWh": 24.5,
         "monthlyCost": 6100,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
         "warrantyPeriod": "패킹 1년 / 모터 3년"
       }
     ],
@@ -345,6 +362,7 @@
         "monthlyUsageKWh": 48.0,
         "monthlyCost": 12000,
         "releaseEnergyGrade": 2,
+        "releaseYear": "2024",
         "warrantyPeriod": "패널 2년"
       },
       {
@@ -355,6 +373,7 @@
         "monthlyUsageKWh": 38.5,
         "monthlyCost": 9400,
         "releaseEnergyGrade": 2,
+        "releaseYear": "2024",
         "warrantyPeriod": "패널 2년"
       },
       {
@@ -365,6 +384,7 @@
         "monthlyUsageKWh": 29.5,
         "monthlyCost": 7300,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
         "warrantyPeriod": "패널 2년"
       }
     ],
@@ -391,6 +411,7 @@
         "monthlyUsageKWh": 16.2,
         "monthlyCost": 4100,
         "releaseEnergyGrade": 2,
+        "releaseYear": "2024",
         "warrantyPeriod": "인버터 모터 10년"
       },
       {
@@ -401,6 +422,7 @@
         "monthlyUsageKWh": 10.5,
         "monthlyCost": 2600,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
         "warrantyPeriod": "인버터 모터 10년"
       }
     ],
@@ -433,6 +455,7 @@
         "monthlyUsageKWh": 8.4,
         "monthlyCost": 2100,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
         "warrantyPeriod": "본체 1년 / 모터 2년"
       },
       {
@@ -443,6 +466,7 @@
         "monthlyUsageKWh": 6.8,
         "monthlyCost": 1700,
         "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
         "warrantyPeriod": "본체 1년"
       }
     ],

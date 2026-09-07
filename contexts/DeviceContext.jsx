@@ -27,12 +27,13 @@ export const DEFAULT_PRESET_DEVICES = [
     annualEstimatedCost: 142000,
     energyGrade: 1,
     releaseEnergyGrade: 1,
+    releaseYear: "2018",
     isPinned: true,
     createdAt: 1700000001000,
     specs: {
       area: "23평형 (75.9㎡)",
       powerConsumption: "1600W",
-      releaseYear: "2024",
+      releaseYear: "2018",
     },
     consumables: [
       {
@@ -66,6 +67,7 @@ export const DEFAULT_PRESET_DEVICES = [
     annualEstimatedCost: 61200,
     energyGrade: 1,
     releaseEnergyGrade: 1,
+    releaseYear: "2023",
     isPinned: true,
     createdAt: 1700000002000,
     specs: {
@@ -105,6 +107,7 @@ export const DEFAULT_PRESET_DEVICES = [
     annualEstimatedCost: 28000,
     energyGrade: 1,
     releaseEnergyGrade: 1,
+    releaseYear: "2024",
     isPinned: true,
     createdAt: 1700000003000,
     specs: {
@@ -144,13 +147,14 @@ export const DEFAULT_PRESET_DEVICES = [
     annualEstimatedCost: 48000,
     energyGrade: 2,
     releaseEnergyGrade: 2,
+    releaseYear: "2024",
     isPinned: true,
     createdAt: 1700000004000,
     specs: {
       screenSize: "75인치 (189cm)",
       resolution: "4K UHD",
       powerConsumption: "140W",
-      releaseYear: "2023",
+      releaseYear: "2024",
     },
     consumables: [],
     manualUrl: "https://www.samsung.com/sec/support",
@@ -176,13 +180,14 @@ export const DEFAULT_PRESET_DEVICES = [
     annualEstimatedCost: 39500,
     energyGrade: 1,
     releaseEnergyGrade: 1,
+    releaseYear: "2021",
     isSmartControl: false,
     isPinned: false,
     createdAt: 1700000005000,
     specs: {
       capacity: "10인용",
       powerConsumption: "1455W",
-      releaseYear: "2022",
+      releaseYear: "2021",
     },
     asInfo: {
       center: "쿠쿠 고객만족센터",
@@ -205,13 +210,14 @@ export const DEFAULT_PRESET_DEVICES = [
     annualEstimatedCost: 19800,
     energyGrade: 2,
     releaseEnergyGrade: 2,
+    releaseYear: "2024",
     isSmartControl: true,
     isPinned: false,
     createdAt: 1700000006000,
     specs: {
       area: "30평형",
       powerConsumption: "70W",
-      releaseYear: "2023",
+      releaseYear: "2024",
     },
     asInfo: {
       center: "LG전자 서비스센터",
@@ -234,13 +240,14 @@ export const DEFAULT_PRESET_DEVICES = [
     annualEstimatedCost: 9800,
     energyGrade: 1,
     releaseEnergyGrade: 1,
+    releaseYear: "2023",
     isSmartControl: true,
     isPinned: false,
     createdAt: 1700000007000,
     specs: {
       battery: "5200mAh",
       suction: "6000Pa",
-      releaseYear: "2024",
+      releaseYear: "2023",
     },
     asInfo: {
       center: "로보락 고객센터",
