@@ -17,7 +17,7 @@ export function BrandLogo({ size = "md", showText = true, className = "" }) {
     <div className={`flex items-center gap-3 select-none ${className}`}>
       {/* Official HSGM Logo from app/icon.png */}
       <div
-        className={`${current.box} bg-black flex items-center justify-center shadow-lg shadow-black/30 border border-white/10 shrink-0 relative overflow-hidden group`}
+        className={`${current.box} bg-white dark:bg-black flex items-center justify-center shadow-md shadow-slate-200/60 dark:shadow-black/40 border border-slate-200 dark:border-white/10 shrink-0 relative overflow-hidden group transition-colors duration-300`}
       >
         <Image
           src="/icon.png"
@@ -25,7 +25,7 @@ export function BrandLogo({ size = "md", showText = true, className = "" }) {
           width={current.px}
           height={current.px}
           priority
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105 dark:invert-0 invert"
         />
       </div>
 

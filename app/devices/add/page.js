@@ -85,8 +85,8 @@ export default function AddDevicePage() {
     return () => stopCamera();
   }, []);
 
-  // 이미지 리사이징 (전송 속도 최적화)
-  const resizeImage = (source, maxWidth = 1200) => {
+  // 이미지 리사이징 및 고효율 압축 (전송 속도 및 Base64 페이로드 최적화)
+  const resizeImage = (source, maxDimension = 1024, quality = 0.75) => {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
@@ -94,22 +94,34 @@ export default function AddDevicePage() {
         let width = img.width;
         let height = img.height;
 
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
+        // 가로/세로 중 긴 축을 기준으로 다운스케일
+        if (width > height) {
+          if (width > maxDimension) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
         }
 
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.85));
+        // OCR/비전 식별력은 유지하면서 수 MB의 이미지를 50~100KB 수준으로 90% 이상 경량화
+        resolve(canvas.toDataURL("image/jpeg", quality));
       };
+      img.onerror = () => resolve(source);
       img.src = source;
     });
   };
 
-  // 실시간 비디오 프레임 캡처
+  // 실시간 비디오 프레임 캡처 (직접 캔버스 다운스케일 및 고효율 압축)
   const handleCapture = async () => {
     if (!videoRef.current || videoRef.current.videoWidth === 0) {
       alert("카메라 영상이 아직 준비되지 않았습니다. 잠시 후 다시 눌러주세요.");
@@ -117,34 +129,50 @@ export default function AddDevicePage() {
     }
     const video = videoRef.current;
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    let width = video.videoWidth;
+    let height = video.videoHeight;
+    const maxDimension = 1024;
 
-    const rawData = canvas.toDataURL("image/jpeg", 0.9);
+    if (width > height) {
+      if (width > maxDimension) {
+        height = Math.round((height * maxDimension) / width);
+        width = maxDimension;
+      }
+    } else {
+      if (height > maxDimension) {
+        width = Math.round((width * maxDimension) / height);
+        height = maxDimension;
+      }
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(video, 0, 0, width, height);
+
     stopCamera();
-    const optimized = await resizeImage(rawData);
+    const optimized = canvas.toDataURL("image/jpeg", 0.75);
     setCapturedImage(optimized);
     setAccumulatedAnswers({});
     setRefineHistory([]);
     runAiScan(optimized, {});
   };
 
-  // 갤러리 파일 업로드
+  // 갤러리 파일 업로드 (Object URL 기반 메모리 절약 및 고속 압축)
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       stopCamera();
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const optimized = await resizeImage(event.target.result);
+      const objectUrl = URL.createObjectURL(file);
+      resizeImage(objectUrl, 1024, 0.75).then((optimized) => {
+        URL.revokeObjectURL(objectUrl);
         setCapturedImage(optimized);
         setAccumulatedAnswers({});
         setRefineHistory([]);
         runAiScan(optimized, {});
-      };
-      reader.readAsDataURL(file);
+      });
     }
   };
 

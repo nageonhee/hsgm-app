@@ -59,57 +59,80 @@ export async function POST(req) {
       text: `${systemPrompt}\n\n사용자 질문: ${lastMessage || "현재 가전 상태를 점검해줘."}`,
     });
 
-    // 4. 구글 최신 권장 모델 순차 시도 (환경 변수 GEMINI_MODEL 우선 적용)
-    const envModel = process.env.GEMINI_MODEL;
-    const targetModels = [
-      ...(envModel ? [envModel] : []),
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-2.5-flash",
-    ].filter((v, i, a) => a.indexOf(v) === i);
+    // 4. env 파일 지정 모델 사용 (기본값 gemini-2.0-flash)
+    const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
-    let replyText = "";
-    let lastError = "";
-
-    for (const model of targetModels) {
-      try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts }],
-            }),
-          }
-        );
-
-        const data = await res.json();
-        if (res.ok && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-          replyText = data.candidates[0].content.parts[0].text;
-          break;
-        } else {
-          lastError = data?.error?.message || "응답 생성 실패";
-        }
-      } catch (err) {
-        lastError = err.message;
+    // 5. 구글 Gemini API 실시간 SSE 스트리밍 호출
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts }],
+        }),
       }
+    );
+
+    if (!geminiRes.ok) {
+      const errData = await geminiRes.json().catch(() => null);
+      const errMsg = errData?.error?.message || `Gemini API 호출 실패 (${geminiRes.status})`;
+      throw new Error(errMsg);
     }
 
-    if (!replyText) {
-      throw new Error(lastError || "모든 Gemini 모델 호출에 실패했습니다.");
-    }
-
-    // 5. 프론트엔드로 스트리밍 타이핑 전달
+    // 6. Gemini SSE 응답을 실시간으로 디코딩하여 프론트엔드로 파이프 전달
     const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
     const stream = new ReadableStream({
       async start(controller) {
-        const chunks = replyText.split("");
-        for (let i = 0; i < chunks.length; i++) {
-          controller.enqueue(encoder.encode(chunks[i]));
-          // 고의적인 지연(setTimeout)을 제거하여 즉각적으로 스트리밍되게 수정함
+        const reader = geminiRes.body.getReader();
+        let buffer = "";
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith("data: ")) {
+                const jsonStr = trimmed.slice(6);
+                if (jsonStr === "[DONE]") continue;
+                try {
+                  const data = JSON.parse(jsonStr);
+                  const textChunk = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (textChunk) {
+                    controller.enqueue(encoder.encode(textChunk));
+                  }
+                } catch (e) {
+                  // 파싱 미완성 잔여 조각 무시
+                }
+              }
+            }
+          }
+
+          if (buffer.trim().startsWith("data: ")) {
+            const jsonStr = buffer.trim().slice(6);
+            if (jsonStr !== "[DONE]") {
+              try {
+                const data = JSON.parse(jsonStr);
+                const textChunk = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (textChunk) {
+                  controller.enqueue(encoder.encode(textChunk));
+                }
+              } catch (e) {}
+            }
+          }
+        } catch (streamErr) {
+          console.error("Gemini Streaming Error:", streamErr);
+        } finally {
+          controller.close();
         }
-        controller.close();
       },
     });
 

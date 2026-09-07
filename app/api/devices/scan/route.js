@@ -40,54 +40,44 @@ export async function POST(req) {
       )}\n\n위 답변들을 바탕으로 다음으로 좁힐 세부 질문(nextQuestion)을 만들거나, 충분히 특정되었다면 isFinal: true로 최종 상세 제원과 성능을 완성하세요.`;
     }
 
-    const envModel = process.env.GEMINI_MODEL;
-    const targetModels = [
-      ...(envModel ? [envModel] : []),
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-2.5-flash",
-    ].filter((v, i, a) => a.indexOf(v) === i);
-
+    const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
     let rawText = "";
 
-    for (const model of targetModels) {
-      try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    { inlineData: { mimeType, data: base64Data } },
-                    { text: promptContent },
-                  ],
-                },
-              ],
-              generationConfig: {
-                temperature: 0.1,
-                responseMimeType: "application/json",
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { inlineData: { mimeType, data: base64Data } },
+                  { text: promptContent },
+                ],
               },
-            }),
-          }
-        );
-
-        if (res.ok) {
-          const data = await res.json();
-          rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (rawText) {
-            console.log(`[Gemini Vision ${model} 판독 성공]:`, rawText.slice(0, 150));
-            break;
-          }
-        } else {
-          const err = await res.json();
-          console.warn(`[Gemini Vision ${model} 호출 실패]:`, err?.error?.message);
+            ],
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: "application/json",
+            },
+          }),
         }
-      } catch (e) {
-        console.warn(`[Gemini Vision ${model} 통신 오류]:`, e.message);
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          console.log(`[Gemini Vision ${model} 판독 성공]:`, rawText.slice(0, 150));
+        }
+      } else {
+        const err = await res.json();
+        console.warn(`[Gemini Vision ${model} 호출 실패]:`, err?.error?.message);
       }
+    } catch (e) {
+      console.warn(`[Gemini Vision ${model} 통신 오류]:`, e.message);
     }
 
     if (!rawText) {
