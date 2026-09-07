@@ -43,13 +43,134 @@ export default function SettingsPage() {
   const { spaces = ["우리집"], currentSpace = "우리집", setCurrentSpace, addSpace } = useDevices();
   const { theme, setTheme } = useTheme();
 
-  const [isAddSpaceOpen, setIsAddSpaceOpen] = useState(false);
-  const [newSpaceName, setNewSpaceName] = useState("");
+  // IoT C2C 계정 연동 상태 및 가전 일괄 불러오기 스태이트
+  const [stConnected, setStConnected] = useState(true); // 기본 연동됨 예시
+  const [tuyaConnected, setTuyaConnected] = useState(false);
+  const [isSyncingIoT, setIsSyncingIoT] = useState(false);
+  const [isFetchModalOpen, setIsFetchModalOpen] = useState(false);
+  const [fetchedDevices, setFetchedDevices] = useState([
+    {
+      id: "st-dev-1",
+      name: "삼성 무풍에어컨 갤러리",
+      brand: "삼성전자",
+      model: "AF19TX772VFN",
+      category: "air_conditioner",
+      icon: "AirVent",
+      power: "1750W",
+      monthlyUsageKWh: 165.4,
+      monthlyCost: 32000,
+      energyGrade: 1,
+      controlType: "c2c_smartthings",
+      isSmartControl: true,
+      selected: true,
+    },
+    {
+      id: "st-dev-2",
+      name: "비스포크 그랑데 AI 세탁기",
+      brand: "삼성전자",
+      model: "WF24DV1700",
+      category: "washing_machine",
+      icon: "WashingMachine",
+      power: "450W",
+      monthlyUsageKWh: 32.5,
+      monthlyCost: 8500,
+      energyGrade: 1,
+      controlType: "c2c_smartthings",
+      isSmartControl: true,
+      selected: true,
+    },
+    {
+      id: "st-dev-3",
+      name: "SmartThings 전력 측정 플러그 (거실 TV)",
+      brand: "삼성전자",
+      model: "ST-PLUG-V2",
+      category: "tv",
+      icon: "Zap",
+      power: "150W",
+      monthlyUsageKWh: 18.0,
+      monthlyCost: 4200,
+      energyGrade: 1,
+      controlType: "c2c_smartthings",
+      isSmartControl: true,
+      selected: true,
+    },
+  ]);
+
+  const { addDevice } = useDevices();
+
+  const handleConnectSmartThings = () => {
+    if (stConnected) {
+      if (confirm("Samsung SmartThings 연동을 해제하시겠습니까?")) {
+        setStConnected(false);
+      }
+    } else {
+      setIsSyncingIoT(true);
+      setTimeout(() => {
+        setIsSyncingIoT(false);
+        setStConnected(true);
+        alert("Samsung 계정이 성공적으로 연동되었습니다! [가전 한 번에 불러오기]를 실행해보세요.");
+      }, 1000);
+    }
+  };
+
+  const handleConnectTuya = () => {
+    if (tuyaConnected) {
+      setTuyaConnected(false);
+    } else {
+      setTuyaConnected(true);
+      alert("Tuya / Smart Life 계정이 연동되었습니다.");
+    }
+  };
+
+  const handleFetchSmartThingsDevices = () => {
+    setIsFetchModalOpen(true);
+  };
+
+  const toggleDeviceSelection = (id) => {
+    setFetchedDevices((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, selected: !d.selected } : d))
+    );
+  };
+
+  const handleBatchImportDevices = async () => {
+    const targets = fetchedDevices.filter((d) => d.selected);
+    if (targets.length === 0) {
+      alert("등록할 기기를 최소 1개 이상 선택해 주세요.");
+      return;
+    }
+
+    try {
+      for (const dev of targets) {
+        await addDevice({
+          name: dev.name,
+          brand: dev.brand,
+          model: dev.model,
+          category: dev.category,
+          icon: dev.icon,
+          currentPower: 0,
+          monthlyUsageKWh: dev.monthlyUsageKWh,
+          monthlyCost: dev.monthlyCost,
+          annualEstimatedCost: dev.monthlyCost * 12,
+          energyGrade: dev.energyGrade,
+          isSmartControl: true,
+          controlType: "c2c_smartthings",
+          specs: { powerConsumption: dev.power, releaseYear: "2024" },
+        });
+      }
+      setIsFetchModalOpen(false);
+      alert(`스마트싱스 기기 ${targets.length}개가 인벤토리에 성공적으로 등록되었습니다!`);
+    } catch (e) {
+      alert("기기 등록 중 오류 발생: " + e.message);
+    }
+  };
 
   // 알림 토글 상태 (로컬 상태)
   const [notifyProgressive, setNotifyProgressive] = useState(true);
   const [notifyStandbyPower, setNotifyStandbyPower] = useState(true);
   const [notifyNightSaving, setNotifyNightSaving] = useState(false);
+
+  const [isAddSpaceOpen, setIsAddSpaceOpen] = useState(false);
+  const [newSpaceName, setNewSpaceName] = useState("");
 
   const handleAddSpaceSubmit = (e) => {
     e?.preventDefault();
@@ -116,7 +237,156 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* 2. 관리 공간(Space) 관리 */}
+        {/* 2. 스마트 홈 IoT 계정 C2C 연동 (SmartThings, Tuya, LG ThinQ) */}
+        <section className="p-5 sm:p-6 rounded-3xl bg-card border border-border shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-primary" />
+              <h2 className="text-base font-bold text-foreground">스마트 홈 IoT 계정 연동 (C2C)</h2>
+            </div>
+            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold">
+              Cloud-to-Cloud
+            </Badge>
+          </div>
+
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            제조사 클라우드 계정을 연동하면 별도 네트워크 설정 없이 계정에 연결된 스마트 가전과 전력 측정 플러그를 한 번에 불러올 수 있습니다.
+          </p>
+
+          <div className="space-y-3 pt-1">
+            {/* 1. 삼성 SmartThings 연동 카드 */}
+            <div className="p-4 rounded-2xl bg-accent/30 border border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 font-extrabold text-sm">
+                    ST
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xs sm:text-sm font-bold text-foreground">Samsung SmartThings</h3>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] ${
+                          stConnected
+                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                            : "bg-muted text-muted-foreground border-border"
+                        }`}
+                      >
+                        {stConnected ? "계정 연동 완료" : "미연동"}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      삼성 무풍에어컨, 그랑데 세탁기, 스마트 플러그 지원
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  variant={stConnected ? "outline" : "default"}
+                  size="sm"
+                  onClick={handleConnectSmartThings}
+                  disabled={isSyncingIoT}
+                  className={`h-9 px-3.5 rounded-xl text-xs font-bold gap-1.5 shadow-xs ${
+                    !stConnected ? "bg-blue-600 hover:bg-blue-700 text-white" : "border-border"
+                  }`}
+                >
+                  {isSyncingIoT ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : stConnected ? (
+                    "연동 해제"
+                  ) : (
+                    "삼성 계정 연동하기"
+                  )}
+                </Button>
+              </div>
+
+              {stConnected && (
+                <div className="pt-2 border-t border-border/60 flex items-center justify-between">
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    스마트싱스 가전 3개가 탐색되었습니다.
+                  </span>
+                  <Button
+                    size="sm"
+                    onClick={handleFetchSmartThingsDevices}
+                    className="h-8 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-bold gap-1 shadow-xs"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    가전 한 번에 불러오기
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* 2. Tuya / Smart Life 연동 카드 */}
+            <div className="p-4 rounded-2xl bg-accent/30 border border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-500 font-extrabold text-sm">
+                    TY
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xs sm:text-sm font-bold text-foreground">Tuya / Smart Life</h3>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] ${
+                          tuyaConnected
+                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                            : "bg-muted text-muted-foreground border-border"
+                        }`}
+                      >
+                        {tuyaConnected ? "계정 연동 완료" : "미연동"}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      중소기업 가전, Wi-Fi 스마트 플러그, 스마트 멀티탭 지원
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  variant={tuyaConnected ? "outline" : "default"}
+                  size="sm"
+                  onClick={handleConnectTuya}
+                  className={`h-9 px-3.5 rounded-xl text-xs font-bold gap-1.5 shadow-xs ${
+                    !tuyaConnected ? "bg-orange-600 hover:bg-orange-700 text-white" : "border-border"
+                  }`}
+                >
+                  {tuyaConnected ? "연동 해제" : "Tuya 계정 연동하기"}
+                </Button>
+              </div>
+            </div>
+
+            {/* 3. LG ThinQ 연동 카드 */}
+            <div className="p-4 rounded-2xl bg-accent/30 border border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 font-extrabold text-sm">
+                    TQ
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xs sm:text-sm font-bold text-foreground">LG ThinQ Connect</h3>
+                      <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-border">
+                        준비 중 (공식 Open API 파트너십)
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      LG 휘센 에어컨, 트롬 세탁기, 오브제 컬렉션 지원 예정
+                    </p>
+                  </div>
+                </div>
+
+                <Button variant="outline" size="sm" disabled className="h-9 px-3.5 rounded-xl text-xs font-bold border-border opacity-50">
+                  순차 오픈 예정
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 3. 관리 공간(Space) 관리 */}
         <section className="p-5 sm:p-6 rounded-3xl bg-card border border-border shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -313,6 +583,78 @@ export default function SettingsPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* 삼성 SmartThings C2C 가전 한 번에 불러오기 모달 */}
+      <Dialog open={isFetchModalOpen} onOpenChange={setIsFetchModalOpen}>
+        <DialogContent className="sm:max-w-lg bg-card/95 backdrop-blur-xl border border-border p-6 rounded-3xl shadow-2xl space-y-4">
+          <DialogHeader className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                <Zap className="w-5 h-5 text-blue-500" />
+                SmartThings 가전 한 번에 불러오기
+              </DialogTitle>
+              <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[10px] font-bold">
+                OAuth 2.0 연동
+              </Badge>
+            </div>
+            <DialogDescription className="text-xs text-muted-foreground">
+              삼성 계정에서 탐색된 가전 목록입니다. 등록할 기기를 선택하여 우리 앱 인벤토리에 일괄 추가하세요.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+            {fetchedDevices.map((dev) => (
+              <div
+                key={dev.id}
+                onClick={() => toggleDeviceSelection(dev.id)}
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                  dev.selected
+                    ? "bg-blue-500/10 border-blue-500/40 shadow-xs"
+                    : "bg-accent/30 border-border opacity-60"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={dev.selected}
+                    onChange={() => {}}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-foreground">{dev.name}</h4>
+                    <p className="text-[11px] text-muted-foreground font-mono">
+                      {dev.brand} • 모델명: {dev.model} ({dev.power})
+                    </p>
+                  </div>
+                </div>
+
+                <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/30">
+                  C2C 제어 준비됨
+                </Badge>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter className="pt-2 gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsFetchModalOpen(false)}
+              className="h-10 rounded-xl text-xs font-semibold border-border"
+            >
+              취소
+            </Button>
+            <Button
+              type="button"
+              onClick={handleBatchImportDevices}
+              className="h-10 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 gap-1.5"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              선택한 {fetchedDevices.filter((d) => d.selected).length}개 가전 일괄 등록하기
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AppShell>
