@@ -15,6 +15,8 @@ import {
   Menu
 } from "lucide-react";
 
+import { BrandLogo } from "@/components/common/BrandLogo";
+
 let globalSidebarCollapsed = false;
 
 export function SideNav() {
@@ -40,17 +42,10 @@ export function SideNav() {
       isCollapsed ? "w-20 items-center" : "w-56"
     }`}>
       {/* Brand Logo & Toggle */}
-      <div className={`flex items-center mb-6 w-full ${isCollapsed ? "justify-center" : "justify-between px-2"}`}>
-        {!isCollapsed && (
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-black text-sm shadow-md shadow-primary/20 shrink-0">
-              H
-            </div>
-            <span className="font-extrabold text-base tracking-tight text-foreground whitespace-nowrap">
-              HSGM
-            </span>
-          </div>
-        )}
+      <div className={`flex items-center mb-6 w-full ${isCollapsed ? "justify-center" : "justify-between px-1"}`}>
+        <Link href="/dashboard" className="outline-none">
+          <BrandLogo size="md" showText={!isCollapsed} />
+        </Link>
         <button 
           onClick={toggleCollapse}
           className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-accent"

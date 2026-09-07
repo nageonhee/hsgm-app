@@ -8,6 +8,8 @@ import { Lock, Mail, User, Home, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import { BrandLogo } from "@/components/common/BrandLogo";
+
 export default function SignUpPage() {
   const router = useRouter();
   const { signUpWithEmail } = useAuth();
@@ -40,11 +42,9 @@ export default function SignUpPage() {
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md space-y-6 relative z-10 animate-in fade-in zoom-in-95 duration-300">
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto shadow-xl shadow-primary/25 mb-3 text-primary-foreground font-black text-2xl tracking-tighter">
-            H
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+        <div className="flex flex-col items-center text-center space-y-2">
+          <BrandLogo size="xl" showText={false} />
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight pt-1">
             HSGM 계정 생성
           </h1>
           <p className="text-xs text-muted-foreground font-medium">

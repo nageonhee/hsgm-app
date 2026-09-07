@@ -8,6 +8,8 @@ import { Lock, Mail, ArrowRight, Sparkles, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import { BrandLogo } from "@/components/common/BrandLogo";
+
 export default function LoginPage() {
   const router = useRouter();
   const { user, loading: authLoading, signInWithEmail, signInAsDemo } = useAuth();
@@ -61,11 +63,9 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md space-y-6 relative z-10 animate-in fade-in zoom-in-95 duration-300">
         {/* Brand Header & Official Logo */}
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto shadow-xl shadow-primary/25 mb-3 text-primary-foreground font-black text-2xl tracking-tighter">
-            H
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+        <div className="flex flex-col items-center text-center space-y-2">
+          <BrandLogo size="xl" showText={false} />
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight pt-1">
             HSGM 스마트 에너지
           </h1>
           <p className="text-xs text-muted-foreground font-medium">
