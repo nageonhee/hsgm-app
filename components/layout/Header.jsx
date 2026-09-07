@@ -61,6 +61,8 @@ function RemoteIcon(props) {
   );
 }
 
+import { BrandLogo } from "@/components/common/BrandLogo";
+
 const PRESET_SPACES = ["거실", "안방", "주방", "서재", "부모님 댁", "원룸/오피스텔", "사무실"];
 
 export function Header() {
@@ -88,8 +90,11 @@ export function Header() {
     <>
       <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-xl border-b border-border pt-safe">
         <div className="flex h-14 items-center justify-between px-4 sm:px-6 max-w-5xl mx-auto">
-          {/* Left: Space Dropdown */}
-          <div className="flex items-center gap-2">
+          {/* Left: Brand Logo (mobile) + Space Dropdown */}
+          <div className="flex items-center gap-2.5">
+            <Link href="/dashboard" className="md:hidden outline-none">
+              <BrandLogo size="sm" showText={false} />
+            </Link>
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center gap-1.5 text-foreground hover:opacity-80 transition-opacity outline-none cursor-pointer">
                 <span className="font-bold text-base tracking-tight truncate max-w-[140px] sm:max-w-[200px]">
