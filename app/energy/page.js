@@ -50,6 +50,11 @@ export default function EnergyPage() {
   const [selectedDeviceForTrend, setSelectedDeviceForTrend] = useState(null);
   const [timeRange, setTimeRange] = useState("daily"); // "daily" | "monthly" | "yearly"
   const [hourlyLogs, setHourlyLogs] = useState([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // 1. Supabase energy_logs 테이블에서 24시간 전력 로그 로드
   useEffect(() => {
@@ -66,26 +71,27 @@ export default function EnergyPage() {
     loadLogs();
   }, []);
 
-  // 2. 실제 DB 가전 데이터를 기준으로 요금 랭킹 및 점유율 계산
+  // 2. 실제 DB 가전 데이터를 기준으로 요금 랭킹 및 점유율 계산 (monthlyUsageKWh, monthlyUsage, monthly_usage_kwh 모두 호환)
   const ranking = useMemo(() => {
     if (!devices || devices.length === 0) return [];
 
-    const totalUsage = devices.reduce(
-      (sum, d) => sum + Number(d.monthlyUsage || d.monthly_usage_kwh || 0),
-      0
-    ) || 1;
+    const totalUsage =
+      devices.reduce(
+        (sum, d) => sum + Number(d.monthlyUsageKWh ?? d.monthlyUsage ?? d.monthly_usage_kwh ?? 0),
+        0
+      ) || 1;
 
     // 월간 요금 기준 내림차순 정렬
     const sorted = [...devices].sort(
       (a, b) =>
-        Number(b.monthlyCost || b.monthly_cost || 0) -
-        Number(a.monthlyCost || a.monthly_cost || 0)
+        Number(b.monthlyCost ?? b.monthly_cost ?? 0) -
+        Number(a.monthlyCost ?? a.monthly_cost ?? 0)
     );
 
     return sorted.map((d, index) => {
-      const usageKWh = Number(d.monthlyUsage || d.monthly_usage_kwh || 0);
-      const monthlyCost = Number(d.monthlyCost || d.monthly_cost || 0);
-      const percent = Math.round((usageKWh / totalUsage) * 100);
+      const usageKWh = Number(d.monthlyUsageKWh ?? d.monthlyUsage ?? d.monthly_usage_kwh ?? 0);
+      const monthlyCost = Number(d.monthlyCost ?? d.monthly_cost ?? 0);
+      const percent = totalUsage > 0 ? Math.round((usageKWh / totalUsage) * 100) : 0;
 
       return {
         deviceId: d.id,
@@ -103,9 +109,10 @@ export default function EnergyPage() {
 
   // 3. 점유율 도넛 차트 데이터
   const pieData = useMemo(() => {
+    if (!ranking || ranking.length === 0) return [];
     return ranking.map((item) => ({
       name: item.name,
-      value: item.usageKWh,
+      value: Math.max(0.1, item.usageKWh),
       cost: item.monthlyCost,
       percent: item.percent,
     }));
@@ -116,8 +123,10 @@ export default function EnergyPage() {
 
   // 5. DB 로그 및 선택된 기간(일별/월별/연도별) 기준 전력 추이 매핑
   const displayTrendData = useMemo(() => {
-    const multiplier = selectedDeviceObj ? (selectedDeviceObj.percent / 100) : 1;
-    const baseKW = selectedDeviceObj ? Number((selectedDeviceObj.usageKWh / 120).toFixed(2)) : 2.41;
+    const multiplier = selectedDeviceObj ? Math.max(0.1, selectedDeviceObj.percent / 100) : 1;
+    const baseKW = selectedDeviceObj
+      ? Number(Math.max(0.2, selectedDeviceObj.usageKWh / 120).toFixed(2))
+      : 2.41;
 
     if (timeRange === "daily") {
       // 일별 (24시간 추이)
@@ -164,7 +173,7 @@ export default function EnergyPage() {
   const realtimePowerKW = useMemo(() => {
     const activeWatts = devices
       .filter((d) => d.status)
-      .reduce((acc, d) => acc + Number(d.currentPower || d.current_power || 0), 0);
+      .reduce((acc, d) => acc + Number(d.currentPower ?? d.current_power ?? 0), 0);
 
     if (activeWatts > 0) {
       return (activeWatts / 1000).toFixed(2);
@@ -258,40 +267,47 @@ export default function EnergyPage() {
             {/* 1. 점유율 도넛 차트 */}
             {chartMode === "share" && (
               <div className="space-y-3">
-                <div className="h-56 w-full pt-1">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={55}
-                        outerRadius={85}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={PIE_COLORS[index % PIE_COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value, name, item) => [
-                          `${value} kWh (₩${Number(item.payload.cost).toLocaleString()})`,
-                          item.payload.name,
-                        ]}
-                        contentStyle={{
-                          backgroundColor: "var(--popover)",
-                          borderColor: "var(--border)",
-                          borderRadius: "12px",
-                          fontSize: "12px",
-                          color: "var(--popover-foreground)",
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                <div className="h-56 w-full pt-1 flex items-center justify-center">
+                  {mounted && pieData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={85}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={PIE_COLORS[index % PIE_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value, name, item) => [
+                            `${value} kWh (₩${Number(item.payload.cost).toLocaleString()})`,
+                            item.payload.name,
+                          ]}
+                          contentStyle={{
+                            backgroundColor: "var(--popover)",
+                            borderColor: "var(--border)",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                            color: "var(--popover-foreground)",
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-muted-foreground text-xs gap-2">
+                      <PieIcon className="w-8 h-8 opacity-40 animate-pulse" />
+                      <span>전력 점유율 데이터를 불러오는 중...</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* 박스를 넘치지 않는 스크롤 범례 (기기가 많아도 안전) */}
@@ -330,47 +346,54 @@ export default function EnergyPage() {
                   </Badge>
                 </div>
 
-                <div className="h-64 w-full pt-1">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={displayTrendData}>
-                      <defs>
-                        <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#0070F3" stopOpacity={0.5} />
-                          <stop offset="95%" stopColor="#0070F3" stopOpacity={0.0} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis
-                        dataKey="time"
-                        stroke="#64748B"
-                        fontSize={11}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        stroke="#64748B"
-                        fontSize={11}
-                        tickLine={false}
-                        unit=" kW"
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "var(--popover)",
-                          borderColor: "var(--border)",
-                          borderRadius: "12px",
-                          fontSize: "12px",
-                          color: "var(--popover-foreground)",
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        name={selectedDeviceObj ? `${selectedDeviceObj.name} 소비부하` : "전체 실시간 부하"}
-                        stroke="#0070F3"
-                        strokeWidth={2.5}
-                        fillOpacity={1}
-                        fill="url(#colorTrend)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                <div className="h-64 w-full pt-1 flex items-center justify-center">
+                  {mounted ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={displayTrendData}>
+                        <defs>
+                          <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#0070F3" stopOpacity={0.5} />
+                            <stop offset="95%" stopColor="#0070F3" stopOpacity={0.0} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis
+                          dataKey="time"
+                          stroke="#64748B"
+                          fontSize={11}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          stroke="#64748B"
+                          fontSize={11}
+                          tickLine={false}
+                          unit=" kW"
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "var(--popover)",
+                            borderColor: "var(--border)",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                            color: "var(--popover-foreground)",
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="value"
+                          name={selectedDeviceObj ? `${selectedDeviceObj.name} 소비부하` : "전체 실시간 부하"}
+                          stroke="#0070F3"
+                          strokeWidth={2.5}
+                          fillOpacity={1}
+                          fill="url(#colorTrend)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-muted-foreground text-xs gap-2">
+                      <LineIcon className="w-8 h-8 opacity-40 animate-pulse" />
+                      <span>전력 추이 그래프를 불러오는 중...</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
