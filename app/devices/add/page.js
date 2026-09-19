@@ -330,10 +330,19 @@ export default function AddDevicePage() {
                   if (!options.includes("잘 모르겠음")) {
                     options.push("잘 모르겠음");
                   }
+                  
+                  let catKo = "스마트 기기";
+                  if (data.category === "air_conditioner" || data.category?.includes("에어컨")) catKo = "에어컨";
+                  else if (data.category === "refrigerator" || data.category?.includes("냉장고")) catKo = "냉장고";
+                  else if (data.category === "washer" || data.category?.includes("세탁기")) catKo = "세탁기";
+                  else if (data.category === "tv" || data.category?.includes("TV") || data.category?.includes("tv")) catKo = "TV";
+                  else if (data.category) catKo = data.category;
+
+                  const brandName = data.brand || "해당";
 
                   setCurrentQuestion({
                     title: data.nextQuestion,
-                    description: data.reason || "정확한 판독을 위해 추가 정보가 필요합니다.",
+                    description: `[${brandName}] [${catKo}]을(를) 확인하였습니다. 외견으로는 알 수 없는 정보를 확인하기 위해 아래 질문에 답변해 주세요.`,
                     options: options,
                   });
                   setAnalyzedDevice(data.temporaryDevice || data);
