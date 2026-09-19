@@ -69,17 +69,15 @@ export async function POST(req) {
       },
       body: JSON.stringify({
         inputs: {
-          user_answers: JSON.stringify(answers || {})
+          user_answers: JSON.stringify(answers || {}),
+          image: {
+            transfer_method: "local_file",
+            upload_file_id: fileId,
+            type: "image"
+          }
         },
         response_mode: "blocking",
-        user: "web-user",
-        files: [
-          {
-            type: "image",
-            transfer_method: "local_file",
-            upload_file_id: fileId
-          }
-        ]
+        user: "web-user"
       })
     });
 
