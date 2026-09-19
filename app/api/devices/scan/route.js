@@ -1,9 +1,8 @@
-import fs from "fs";
-import path from "path";
 import { keaService } from "@/services/keaService";
 import { evaluateDeviceGrade } from "@/lib/energyGrade";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export async function POST(req) {
   let requestData;
@@ -37,13 +36,20 @@ export async function POST(req) {
 
         const mimeType = image.split(";")[0].split(":")[1] || "image/jpeg";
         const base64Data = image.split(",")[1];
-        const buffer = Buffer.from(base64Data, "base64");
+        
+        // Edge Runtime compatible base64 decoding
+        const binaryString = atob(base64Data);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: mimeType });
 
         sendEvent("progress", { message: "서버로 이미지 전송 중..." });
 
         // 1. Dify 파일 업로드 API 호출
         const formData = new FormData();
-        const blob = new Blob([buffer], { type: mimeType });
         formData.append("file", blob, "image.jpg");
         formData.append("user", "web-user");
 
