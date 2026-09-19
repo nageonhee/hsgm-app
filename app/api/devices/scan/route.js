@@ -17,16 +17,24 @@ export async function POST(req) {
 
   const stream = new ReadableStream({
     async start(controller) {
+      const encoder = new TextEncoder();
       const sendEvent = (type, data) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type, ...data })}\n\n`));
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type, ...data })}\n\n`));
+        } catch (e) {}
       };
       
-      const sendError = (message) => {
-        sendEvent("error", { error: message });
-        controller.close();
+      const sendError = (errorMsg) => {
+        sendEvent("error", { error: errorMsg });
+        try { controller.close(); } catch (e) {}
       };
 
       try {
+        // 프록시(Vercel, Nginx) 버퍼 강제 비우기용 패딩 전송
+        controller.enqueue(encoder.encode(`: ${" ".repeat(4096)}\n\n`));
+        
+        sendEvent("progress", { message: "서버 초기 설정 및 이미지 디코딩 중..." });
+
         const apiKey = process.env.GEMINI_API_KEY;
         const difyKey = process.env.DIFY_API_KEY;
         const difyUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
@@ -46,7 +54,7 @@ export async function POST(req) {
         }
         const blob = new Blob([bytes], { type: mimeType });
 
-        sendEvent("progress", { message: "서버로 이미지 전송 중..." });
+        sendEvent("progress", { message: "Dify 서버로 이미지 업로드 중..." });
 
         // 1. Dify 파일 업로드 API 호출
         const formData = new FormData();
