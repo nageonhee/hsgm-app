@@ -386,6 +386,7 @@ export default function AddDevicePage() {
       }
     } catch (err) {
       console.error("Scan Error:", err);
+      alert(`❌ AI 분석 오류:\n${err.message || "알 수 없는 오류가 발생했습니다."}\n\n잠시 후 다시 시도해주세요.`);
       setErrorMessage(
         err.message || "이미지 분석에 실패했습니다. 아래 [수동 입력]을 통해 바로 등록하실 수 있습니다."
       );
