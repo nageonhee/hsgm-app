@@ -269,7 +269,7 @@ export default function AddDevicePage() {
     setErrorMessage("");
 
     if (isFirstScan) {
-      setScanProgressText("이미지 전송 및 Google Gemini Vision 모델 연결 중...");
+      setScanProgressText("이미지 전송 및 AI 분석 모델 연결 중...");
     } else {
       setScanProgressText("사용자 선택을 반영하여 세부 모델 및 성능 스펙을 좁혀가는 중...");
     }
@@ -605,7 +605,7 @@ export default function AddDevicePage() {
 
             <div className="space-y-1.5">
               <h3 className="text-lg font-bold text-foreground">
-                Google Gemini AI 실시간 분석 & 추론 중
+                AI 스마트 스캔 분석 중
               </h3>
               <p className="text-xs sm:text-sm text-primary font-mono animate-pulse">
                 {scanProgressText}

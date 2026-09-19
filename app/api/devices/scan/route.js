@@ -98,8 +98,24 @@ export async function POST(req) {
     // 3. Dify 출력값 파싱 (is_success 여부에 따른 분기)
     // 성공 시 model_data, 실패 시 question_data가 반환되는 아키텍처
     if (outputs.is_success === "true" || outputs.is_success === true || outputs.success_data || outputs.model_data) {
-      const modelDataText = outputs.model_data || outputs.success_data;
-      const parsed = typeof modelDataText === "string" ? JSON.parse(modelDataText) : modelDataText;
+      let modelDataText = outputs.model_data || outputs.success_data;
+      
+      if (!modelDataText) {
+        throw new Error("분석에 성공했으나 스펙 데이터가 없습니다.");
+      }
+
+      let parsed = {};
+      try {
+        if (typeof modelDataText === "string") {
+          modelDataText = modelDataText.replace(/```json/gi, "").replace(/```/g, "").trim();
+          parsed = JSON.parse(modelDataText);
+        } else {
+          parsed = modelDataText;
+        }
+      } catch(err) {
+        console.error("JSON 파싱 에러(성공 분기):", modelDataText);
+        throw new Error("스펙 데이터를 파싱할 수 없습니다: " + err.message);
+      }
       
       result = {
         ...parsed,
@@ -119,8 +135,24 @@ export async function POST(req) {
         releaseYear: parsed.purchase_year || "2024",
       };
     } else {
-      const failDataText = outputs.question_data || outputs.fail_data;
-      const parsed = typeof failDataText === "string" ? JSON.parse(failDataText) : failDataText;
+      let failDataText = outputs.question_data || outputs.fail_data;
+      
+      if (!failDataText) {
+        throw new Error("분석에 실패했거나 반환된 결과가 없습니다. 사진을 다시 찍어주세요.");
+      }
+
+      let parsed = {};
+      try {
+        if (typeof failDataText === "string") {
+          failDataText = failDataText.replace(/```json/gi, "").replace(/```/g, "").trim();
+          parsed = JSON.parse(failDataText);
+        } else {
+          parsed = failDataText;
+        }
+      } catch (err) {
+        console.error("JSON 파싱 에러(실패 분기):", failDataText);
+        throw new Error("질문 데이터를 파싱할 수 없습니다: " + err.message);
+      }
       
       result = {
         isFinal: false,
