@@ -1,0 +1,284 @@
+[
+  {
+    "id": "dev-1",
+    "name": "LG 휘센 오브제타워 에어컨",
+    "category": "air_conditioner",
+    "brand": "LG전자",
+    "model": "FQ18VBDWC2",
+    "icon": "AirVent",
+    "status": true,
+    "currentPower": 1450,
+    "monthlyUsageKWh": 142.5,
+    "monthlyCost": 35600,
+    "annualEstimatedCost": 142000,
+    "releaseEnergyGrade": 1,
+    "releaseYear": "2024",
+    "currentEnergyGrade": 1,
+    "energyGradeDesc": "최신 고효율 인버터 (1등급 유지)",
+    "isSmartControl": true,
+    "controlType": "wifi",
+    "specs": {
+      "area": "18평형 (58.5㎡)",
+      "coolingCapacity": "7,000W",
+      "powerConsumption": "1.75kW",
+      "color": "카밍 베이지",
+      "releaseYear": "2024"
+    },
+    "consumables": [
+      {
+        "name": "극세필터 & 초미세먼지 플러스 필터",
+        "status": "교체 필요 (D-12)",
+        "price": 28900,
+        "buyUrl": "https://www.lge.co.kr/care-accessories/air-conditioner-filters",
+        "lowestPrice": "24,800원"
+      }
+    ],
+    "manualUrl": "https://www.lge.co.kr/support/manuals",
+    "asInfo": {
+      "center": "LG전자 서비스센터",
+      "phone": "1544-7777",
+      "siteUrl": "https://www.lge.co.kr/support/service-engineer-request",
+      "warrantyPeriod": "컴프레서 10년 / 일반 2년"
+    },
+    "isProtectedGuardrail": false
+  },
+  {
+    "id": "dev-2",
+    "name": "삼성 비스포크 4도어 냉장고",
+    "category": "refrigerator",
+    "brand": "삼성전자",
+    "model": "RF85C9001AP",
+    "icon": "Refrigerator",
+    "status": true,
+    "currentPower": 130,
+    "monthlyUsageKWh": 48.2,
+    "monthlyCost": 11800,
+    "annualEstimatedCost": 61200,
+    "releaseEnergyGrade": 1,
+    "releaseYear": "2023",
+    "currentEnergyGrade": 1,
+    "energyGradeDesc": "디지털 인버터 고효율 (1등급 유지)",
+    "isSmartControl": true,
+    "controlType": "wifi",
+    "specs": {
+      "capacity": "875L",
+      "powerConsumption": "35.3kWh/월",
+      "releaseYear": "2023"
+    },
+    "consumables": [
+      {
+        "name": "청정제균탈취기 필터",
+        "status": "양호 (65% 잔여)",
+        "price": 19000,
+        "buyUrl": "https://www.samsung.com/sec/accessories",
+        "lowestPrice": "16,500원"
+      }
+    ],
+    "manualUrl": "https://www.samsung.com/sec/support",
+    "asInfo": {
+      "center": "삼성전자 서비스",
+      "phone": "1588-3366",
+      "siteUrl": "https://www.samsungsvc.co.kr/reserve/engineer",
+      "warrantyPeriod": "컴프레서 평생보증"
+    },
+    "isProtectedGuardrail": true
+  },
+  {
+    "id": "dev-3",
+    "name": "LG 트롬 드럼 세탁기 (일반형)",
+    "category": "washer",
+    "brand": "LG전자",
+    "model": "FX24GNB",
+    "icon": "WashingMachine",
+    "status": false,
+    "currentPower": 0,
+    "monthlyUsageKWh": 24.8,
+    "monthlyCost": 6200,
+    "annualEstimatedCost": 28000,
+    "releaseEnergyGrade": 1,
+    "releaseYear": "2019",
+    "currentEnergyGrade": 3,
+    "energyGradeDesc": "현행 강화 기준 적용 시 3등급 환산",
+    "isSmartControl": false,
+    "controlType": "none",
+    "specs": {
+      "capacity": "24kg",
+      "powerConsumption": "350Wh/회",
+      "releaseYear": "2019"
+    },
+    "consumables": [
+      {
+        "name": "배수 펌프 거름망 & 세제함",
+        "status": "세척 권장 (D-5)",
+        "price": 12000,
+        "buyUrl": "https://www.lge.co.kr/care-accessories/washing-machine-accessories",
+        "lowestPrice": "9,800원"
+      }
+    ],
+    "manualUrl": "https://www.lge.co.kr/support/manuals",
+    "asInfo": {
+      "center": "LG전자 서비스센터",
+      "phone": "1544-7777",
+      "siteUrl": "https://www.lge.co.kr/support/service-engineer-request",
+      "warrantyPeriod": "모터 10년"
+    },
+    "isProtectedGuardrail": false
+  },
+  {
+    "id": "dev-4",
+    "name": "삼성 네오 QLED 75인치 TV",
+    "category": "tv",
+    "brand": "삼성전자",
+    "model": "KQ75QND90AFXKR",
+    "icon": "Tv",
+    "status": true,
+    "currentPower": 165,
+    "monthlyUsageKWh": 38.5,
+    "monthlyCost": 9400,
+    "annualEstimatedCost": 48000,
+    "releaseEnergyGrade": 2,
+    "releaseYear": "2022",
+    "currentEnergyGrade": 3,
+    "energyGradeDesc": "현행 기준 3등급 환산",
+    "isSmartControl": true,
+    "controlType": "wifi",
+    "specs": {
+      "screenSize": "75인치 (189cm)",
+      "resolution": "4K UHD",
+      "powerConsumption": "235W (최대)",
+      "releaseYear": "2022"
+    },
+    "consumables": [],
+    "manualUrl": "https://www.samsung.com/sec/support",
+    "asInfo": {
+      "center": "삼성전자 서비스",
+      "phone": "1588-3366",
+      "siteUrl": "https://www.samsungsvc.co.kr/reserve/engineer",
+      "warrantyPeriod": "패널 2년"
+    },
+    "isProtectedGuardrail": false
+  },
+  {
+    "id": "dev-5",
+    "name": "쿠쿠 트윈프레셔 IH 전기밥솥",
+    "category": "cooker",
+    "brand": "쿠쿠전자",
+    "model": "CRP-LHTR1010FW",
+    "icon": "Utensils",
+    "status": false,
+    "currentPower": 0,
+    "monthlyUsageKWh": 32.4,
+    "monthlyCost": 8100,
+    "annualEstimatedCost": 39500,
+    "releaseEnergyGrade": 1,
+    "releaseYear": "2018",
+    "currentEnergyGrade": 4,
+    "energyGradeDesc": "보온 손실 누적으로 현행 4등급 환산 (교체 추천)",
+    "isSmartControl": false,
+    "controlType": "none",
+    "specs": {
+      "capacity": "10인용",
+      "powerConsumption": "1455W (취사 시)",
+      "releaseYear": "2018"
+    },
+    "consumables": [
+      {
+        "name": "이중모션 패킹 & 증기 배출구",
+        "status": "밀폐력 저하 (교체 시급)",
+        "price": 15000,
+        "buyUrl": "https://www.cuckoo.co.kr",
+        "lowestPrice": "11,500원"
+      }
+    ],
+    "manualUrl": "https://www.cuckoo.co.kr/customer/manual",
+    "asInfo": {
+      "center": "쿠쿠 고객만족센터",
+      "phone": "1588-8899",
+      "siteUrl": "https://www.cuckoo.co.kr/customer/as/request",
+      "warrantyPeriod": "무상 1년"
+    },
+    "isProtectedGuardrail": false
+  },
+  {
+    "id": "dev-6",
+    "name": "LG 퓨리케어 360˚ 공기청정기",
+    "category": "air_purifier",
+    "brand": "LG전자",
+    "model": "AS304DWFA",
+    "icon": "Wind",
+    "status": true,
+    "currentPower": 45,
+    "monthlyUsageKWh": 16.2,
+    "monthlyCost": 4100,
+    "annualEstimatedCost": 19800,
+    "releaseEnergyGrade": 2,
+    "releaseYear": "2023",
+    "currentEnergyGrade": 2,
+    "energyGradeDesc": "현행 기준 2등급 유지",
+    "isSmartControl": true,
+    "controlType": "wifi",
+    "specs": {
+      "area": "100㎡ (30평형)",
+      "powerConsumption": "70W",
+      "releaseYear": "2023"
+    },
+    "consumables": [
+      {
+        "name": "V 필터 (항바이러스/초미세먼지)",
+        "status": "양호 (78% 잔여)",
+        "price": 45000,
+        "buyUrl": "https://www.lge.co.kr/care-accessories/air-purifier-filters",
+        "lowestPrice": "38,000원"
+      }
+    ],
+    "manualUrl": "https://www.lge.co.kr/support/manuals",
+    "asInfo": {
+      "center": "LG전자 서비스센터",
+      "phone": "1544-7777",
+      "siteUrl": "https://www.lge.co.kr/support/service-engineer-request",
+      "warrantyPeriod": "인버터 모터 10년"
+    },
+    "isProtectedGuardrail": false
+  },
+  {
+    "id": "dev-7",
+    "name": "로보락 S8 Pro Ultra 로봇청소기",
+    "category": "robot_cleaner",
+    "brand": "로보락",
+    "model": "S8PU-01",
+    "icon": "Disc",
+    "status": false,
+    "currentPower": 0,
+    "monthlyUsageKWh": 8.4,
+    "monthlyCost": 2100,
+    "annualEstimatedCost": 9800,
+    "releaseEnergyGrade": 1,
+    "releaseYear": "2024",
+    "currentEnergyGrade": 1,
+    "energyGradeDesc": "스마트 충전 관리 1등급 유지",
+    "isSmartControl": true,
+    "controlType": "wifi",
+    "specs": {
+      "battery": "5200mAh",
+      "suction": "6000Pa",
+      "releaseYear": "2024"
+    },
+    "consumables": [
+      {
+        "name": "물걸레 패드 & 사이드 브러시 세트",
+        "status": "교체 권장 (D-20)",
+        "price": 25000,
+        "buyUrl": "https://roborock.co.kr",
+        "lowestPrice": "19,900원"
+      }
+    ],
+    "manualUrl": "https://roborock.co.kr/support",
+    "asInfo": {
+      "center": "로보락 코리아 고객센터",
+      "phone": "1588-0000",
+      "siteUrl": "https://roborock.co.kr/support",
+      "warrantyPeriod": "본체 2년 / 배터리 1년"
+    },
+    "isProtectedGuardrail": false
+  }
+]

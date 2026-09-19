@@ -1,0 +1,116 @@
+{
+  "summary": {
+    "currentMonth": "9월",
+    "totalEstimatedCost": 42350,
+    "lastMonthCost": 48100,
+    "savedRate": 12.0,
+    "savedAmount": 5750,
+    "realtimePowerKW": 2.41,
+    "currentProgressiveStage": 1,
+    "maxStage": 3,
+    "stage1ThresholdKWh": 200,
+    "stage2ThresholdKWh": 400,
+    "currentUsageKWh": 178.4,
+    "projectedMonthEndKWh": 235.0,
+    "daysRemaining": 14,
+    "projectedStageBreakDay": 18,
+    "projectedStageBreakDate": "9월 18일 (목)"
+  },
+  "ranking": [
+    {
+      "rank": 1,
+      "deviceId": "dev-1",
+      "name": "에어컨 (거실)",
+      "brand": "LG 휘센",
+      "monthlyCost": 18200,
+      "usageKWh": 72.8,
+      "percent": 43.0,
+      "isPowerPig": true,
+      "icon": "AirVent"
+    },
+    {
+      "rank": 2,
+      "deviceId": "dev-5",
+      "name": "전기밥솥",
+      "brand": "쿠쿠 마스터셰프",
+      "monthlyCost": 8100,
+      "usageKWh": 32.4,
+      "percent": 19.1,
+      "isPowerPig": false,
+      "icon": "Utensils"
+    },
+    {
+      "rank": 3,
+      "deviceId": "dev-2",
+      "name": "냉장고",
+      "brand": "삼성 비스포크",
+      "monthlyCost": 5900,
+      "usageKWh": 23.6,
+      "percent": 13.9,
+      "isPowerPig": false,
+      "icon": "Refrigerator"
+    },
+    {
+      "rank": 4,
+      "deviceId": "dev-4",
+      "name": "75인치 TV",
+      "brand": "삼성 QLED",
+      "monthlyCost": 5400,
+      "usageKWh": 21.6,
+      "percent": 12.7,
+      "isPowerPig": false,
+      "icon": "Tv"
+    },
+    {
+      "rank": 5,
+      "deviceId": "dev-3",
+      "name": "세탁기",
+      "brand": "LG 트롬",
+      "monthlyCost": 3100,
+      "usageKWh": 12.4,
+      "percent": 7.3,
+      "isPowerPig": false,
+      "icon": "WashingMachine"
+    },
+    {
+      "rank": 6,
+      "deviceId": "dev-6",
+      "name": "기타 가전/대기전력",
+      "brand": "멀티탭/셋톱박스 등",
+      "monthlyCost": 1650,
+      "usageKWh": 6.6,
+      "percent": 4.0,
+      "isPowerPig": false,
+      "icon": "Zap"
+    }
+  ],
+  "hourlyTrend": [
+    { "time": "00:00", "total": 0.45, "beforeAi": 0.62, "airConditioner": 0.25, "fridge": 0.12, "others": 0.08 },
+    { "time": "03:00", "total": 0.38, "beforeAi": 0.55, "airConditioner": 0.20, "fridge": 0.11, "others": 0.07 },
+    { "time": "06:00", "total": 0.52, "beforeAi": 0.70, "airConditioner": 0.22, "fridge": 0.15, "others": 0.15 },
+    { "time": "09:00", "total": 1.15, "beforeAi": 1.48, "airConditioner": 0.65, "fridge": 0.18, "others": 0.32 },
+    { "time": "12:00", "total": 1.85, "beforeAi": 2.40, "airConditioner": 1.20, "fridge": 0.20, "others": 0.45 },
+    { "time": "15:00", "total": 2.41, "beforeAi": 3.10, "airConditioner": 1.65, "fridge": 0.22, "others": 0.54 },
+    { "time": "18:00", "total": 2.10, "beforeAi": 2.85, "airConditioner": 1.35, "fridge": 0.24, "others": 0.51 },
+    { "time": "21:00", "total": 1.95, "beforeAi": 2.65, "airConditioner": 1.10, "fridge": 0.20, "others": 0.65 }
+  ],
+  "dailyTrend": [
+    { "day": "9/1", "actual": 5.4, "projected": 5.4, "aiControlled": 4.8 },
+    { "day": "9/3", "actual": 6.1, "projected": 6.1, "aiControlled": 5.2 },
+    { "day": "9/5", "actual": 5.8, "projected": 5.8, "aiControlled": 4.9 },
+    { "day": "9/7", "actual": 7.2, "projected": 7.2, "aiControlled": 5.8 },
+    { "day": "9/9", "actual": 6.5, "projected": 6.5, "aiControlled": 5.4 },
+    { "day": "9/11", "actual": 5.9, "projected": 5.9, "aiControlled": 5.0 },
+    { "day": "9/13", "actual": 6.4, "projected": 6.4, "aiControlled": 5.3 },
+    { "day": "9/15", "actual": 6.8, "projected": 6.8, "aiControlled": 5.6 },
+    { "day": "9/18", "actual": null, "projected": 7.5, "aiControlled": 5.9 },
+    { "day": "9/22", "actual": null, "projected": 8.0, "aiControlled": 6.1 },
+    { "day": "9/26", "actual": null, "projected": 7.8, "aiControlled": 6.0 },
+    { "day": "9/30", "actual": null, "projected": 7.4, "aiControlled": 5.7 }
+  ],
+  "progressiveStages": [
+    { "stage": 1, "range": "0 ~ 200 kWh", "ratePerKWh": 120.0, "status": "active", "color": "#4ADE80" },
+    { "stage": 2, "range": "201 ~ 400 kWh", "ratePerKWh": 214.6, "status": "projected", "color": "#FBBF24" },
+    { "stage": 3, "range": "401 kWh 초과", "ratePerKWh": 307.3, "status": "safe", "color": "#F87171" }
+  ]
+}

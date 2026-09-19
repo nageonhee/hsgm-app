@@ -1,0 +1,717 @@
+[
+  {
+    "id": "kea-lg-aircon-objet",
+    "brand": "LG전자",
+    "name": "LG 휘센 오브제타워 / 아트 스탠드 에어컨",
+    "category": "air_conditioner",
+    "icon": "AirVent",
+    "modelPrefix": ["FQ26", "FQ25", "FQ24", "FQ23", "FQ20", "FQ19", "FQ18", "LP-C23", "FQ", "FN"],
+    "subModels": [
+      {
+        "id": "lg-aircon-23p",
+        "label": "23평형 대형 스탠드 (거실용)",
+        "capacity": "23평형 (75.9㎡)",
+        "coolingCapacity": "8,300W",
+        "powerConsumption": "1600W",
+        "monthlyUsageKWh": 142.5,
+        "monthlyCost": 35600,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
+        "warrantyPeriod": "컴프레서 10년 / 일반 2년"
+      },
+      {
+        "id": "lg-aircon-18p",
+        "label": "18평형 표준 스탠드 (국민 평형)",
+        "capacity": "18평형 (58.5㎡)",
+        "coolingCapacity": "7,000W",
+        "powerConsumption": "1450W",
+        "monthlyUsageKWh": 128.0,
+        "monthlyCost": 31200,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "컴프레서 10년 / 일반 2년"
+      },
+      {
+        "id": "lg-aircon-wall",
+        "label": "7평형 벽걸이형 (안방/원룸용)",
+        "capacity": "7평형 (22.8㎡)",
+        "coolingCapacity": "2,800W",
+        "powerConsumption": "650W",
+        "monthlyUsageKWh": 45.0,
+        "monthlyCost": 11000,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "컴프레서 10년 / 일반 2년"
+      }
+    ],
+    "asInfo": {
+      "center": "LG전자 서비스센터",
+      "phone": "1544-7777",
+      "siteUrl": "https://www.lge.co.kr/support/service-engineer-request"
+    },
+    "consumables": [
+      {
+        "name": "극세필터 & 초미세먼지 플러스 필터",
+        "price": 28900,
+        "buyUrl": "https://www.lge.co.kr/care-accessories/air-conditioner-filters"
+      }
+    ]
+  },
+  {
+    "id": "kea-samsung-aircon-windfree",
+    "brand": "삼성전자",
+    "name": "삼성 비스포크 무풍 클래식 / 갤러리 에어컨",
+    "category": "air_conditioner",
+    "icon": "AirVent",
+    "modelPrefix": ["AF26", "AF25", "AF23", "AF20", "AF19", "AF18", "AF17", "AF"],
+    "subModels": [
+      {
+        "id": "ss-aircon-23p",
+        "label": "무풍 갤러리 23평형 스탠드",
+        "capacity": "23평형 (75.9㎡)",
+        "coolingCapacity": "8,200W",
+        "powerConsumption": "1580W",
+        "monthlyUsageKWh": 138.0,
+        "monthlyCost": 34500,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
+        "warrantyPeriod": "디지털 인버터 평생보증"
+      },
+      {
+        "id": "ss-aircon-18p",
+        "label": "무풍 클래식 18평형 스탠드",
+        "capacity": "18평형 (58.5㎡)",
+        "coolingCapacity": "7,000W",
+        "powerConsumption": "1420W",
+        "monthlyUsageKWh": 125.0,
+        "monthlyCost": 30500,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "디지털 인버터 평생보증"
+      },
+      {
+        "id": "ss-aircon-wall",
+        "label": "무풍 벽걸이형 6~7평형",
+        "capacity": "6평형 (18.7㎡)",
+        "coolingCapacity": "2,300W",
+        "powerConsumption": "580W",
+        "monthlyUsageKWh": 40.0,
+        "monthlyCost": 9800,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "디지털 인버터 평생보증"
+      }
+    ],
+    "asInfo": {
+      "center": "삼성전자 서비스",
+      "phone": "1588-3366",
+      "siteUrl": "https://www.samsungsvc.co.kr/reserve/engineer"
+    },
+    "consumables": [
+      {
+        "name": "PM1.0 살균 필터 및 항균 구리 극세필터",
+        "price": 27000,
+        "buyUrl": "https://www.samsung.com/sec/accessories"
+      }
+    ]
+  },
+  {
+    "id": "kea-samsung-fridge-bespoke",
+    "brand": "삼성전자",
+    "name": "삼성 비스포크 4도어 / 양문형 냉장고",
+    "category": "refrigerator",
+    "icon": "Refrigerator",
+    "modelPrefix": ["RF85F", "RF85E", "RF85D", "RF85C", "RF85", "RF90", "RF84", "RF60", "RS84", "RF", "RS"],
+    "subModels": [
+      {
+        "id": "ss-fridge-875l",
+        "label": "4도어 플래그십 (875L 대용량)",
+        "capacity": "875L",
+        "powerConsumption": "35.3kWh/월 (130W)",
+        "monthlyUsageKWh": 35.3,
+        "monthlyCost": 8800,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
+        "warrantyPeriod": "컴프레서 평생보증"
+      },
+      {
+        "id": "ss-fridge-830l",
+        "label": "4도어 표준형 (830L~840L)",
+        "capacity": "830L",
+        "powerConsumption": "38.5kWh/월 (140W)",
+        "monthlyUsageKWh": 38.5,
+        "monthlyCost": 9600,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "컴프레서 평생보증"
+      },
+      {
+        "id": "ss-fridge-600l",
+        "label": "키친핏 슬림 4도어 (615L)",
+        "capacity": "615L (키친핏)",
+        "powerConsumption": "31.2kWh/월 (120W)",
+        "monthlyUsageKWh": 31.2,
+        "monthlyCost": 7800,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
+        "warrantyPeriod": "컴프레서 평생보증"
+      }
+    ],
+    "asInfo": {
+      "center": "삼성전자 서비스",
+      "phone": "1588-3366",
+      "siteUrl": "https://www.samsungsvc.co.kr"
+    },
+    "consumables": [
+      {
+        "name": "청정제균탈취기 필터",
+        "price": 19000,
+        "buyUrl": "https://www.samsung.com/sec/accessories"
+      }
+    ]
+  },
+  {
+    "id": "kea-lg-fridge-dios",
+    "brand": "LG전자",
+    "name": "LG 디오스 오브제컬렉션 4도어 냉장고",
+    "category": "refrigerator",
+    "icon": "Refrigerator",
+    "modelPrefix": ["M876", "M875", "M874", "M873", "M872", "M871", "M87", "T873", "F873", "M8"],
+    "subModels": [
+      {
+        "id": "lg-fridge-870l",
+        "label": "디오스 오브제 4도어 (870L)",
+        "capacity": "870L",
+        "powerConsumption": "34.8kWh/월 (128W)",
+        "monthlyUsageKWh": 34.8,
+        "monthlyCost": 8700,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
+        "warrantyPeriod": "인버터 리니어 컴프레서 10년"
+      },
+      {
+        "id": "lg-fridge-610l",
+        "label": "키친핏 4도어 (610L 빌트인형)",
+        "capacity": "610L",
+        "powerConsumption": "30.5kWh/월 (115W)",
+        "monthlyUsageKWh": 30.5,
+        "monthlyCost": 7600,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "인버터 리니어 컴프레서 10년"
+      }
+    ],
+    "asInfo": {
+      "center": "LG전자 서비스센터",
+      "phone": "1544-7777",
+      "siteUrl": "https://www.lge.co.kr"
+    },
+    "consumables": [
+      {
+        "name": "안심제균 플러스 필터",
+        "price": 18000,
+        "buyUrl": "https://www.lge.co.kr/care-accessories"
+      }
+    ]
+  },
+  {
+    "id": "kea-dimchae-kimchi-fridge",
+    "brand": "위니아 딤채",
+    "name": "딤채 스탠드형 / 뚜껑형 김치냉장고",
+    "category": "kimchi_fridge",
+    "icon": "Refrigerator",
+    "modelPrefix": ["WDT", "EDQ", "BDQ", "CDQ", "VDQ", "GDQ", "DQ"],
+    "subModels": [
+      {
+        "id": "dimchae-stand-467l",
+        "label": "스탠드 4도어 467L (탑쿨링)",
+        "capacity": "467L",
+        "powerConsumption": "13.8kWh/월 (110W)",
+        "monthlyUsageKWh": 13.8,
+        "monthlyCost": 3500,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
+        "warrantyPeriod": "컴프레서 10년"
+      },
+      {
+        "id": "dimchae-top-221l",
+        "label": "뚜껑형 2룸 221L 표준형",
+        "capacity": "221L",
+        "powerConsumption": "9.2kWh/월 (85W)",
+        "monthlyUsageKWh": 9.2,
+        "monthlyCost": 2300,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "컴프레서 3년"
+      }
+    ],
+    "asInfo": {
+      "center": "위니아에이드 고객센터",
+      "phone": "1588-9588",
+      "siteUrl": "https://www.winiaaid.com"
+    },
+    "consumables": [
+      {
+        "name": "바이오 탈취 필터 세트",
+        "price": 14000,
+        "buyUrl": "https://www.winiaaid.com"
+      }
+    ]
+  },
+  {
+    "id": "kea-lg-washer-tromm",
+    "brand": "LG전자",
+    "name": "LG 트롬 오브제컬렉션 드럼 세탁기",
+    "category": "washer",
+    "icon": "WashingMachine",
+    "modelPrefix": ["FX26", "FX25", "FX24", "FX21", "F24", "F21", "FX"],
+    "subModels": [
+      {
+        "id": "lg-washer-24kg",
+        "label": "트롬 24kg 대용량 드럼",
+        "capacity": "24kg",
+        "powerConsumption": "450W (탈수 시 1200W)",
+        "monthlyUsageKWh": 24.8,
+        "monthlyCost": 6200,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
+        "warrantyPeriod": "DD 모터 10년"
+      },
+      {
+        "id": "lg-washer-21kg",
+        "label": "트롬 21kg 표준 드럼",
+        "capacity": "21kg",
+        "powerConsumption": "420W (탈수 시 1100W)",
+        "monthlyUsageKWh": 22.5,
+        "monthlyCost": 5600,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "DD 모터 10년"
+      }
+    ],
+    "asInfo": {
+      "center": "LG전자 서비스센터",
+      "phone": "1544-7777",
+      "siteUrl": "https://www.lge.co.kr"
+    },
+    "consumables": [
+      {
+        "name": "배수 펌프 거름망 & 세제 투입구",
+        "price": 12000,
+        "buyUrl": "https://www.lge.co.kr/care-accessories"
+      }
+    ]
+  },
+  {
+    "id": "kea-samsung-washer-grander",
+    "brand": "삼성전자",
+    "name": "삼성 그랑데 / 비스포크 AI 드럼 세탁기",
+    "category": "washer",
+    "icon": "WashingMachine",
+    "modelPrefix": ["WF26", "WF25", "WF24", "WF21", "WF19", "WF"],
+    "subModels": [
+      {
+        "id": "ss-washer-24kg",
+        "label": "비스포크 AI 24kg 드럼",
+        "capacity": "24kg",
+        "powerConsumption": "460W (탈수 시 1250W)",
+        "monthlyUsageKWh": 25.2,
+        "monthlyCost": 6300,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
+        "warrantyPeriod": "디지털 인버터 모터 평생보증"
+      },
+      {
+        "id": "ss-washer-21kg",
+        "label": "그랑데 AI 21kg 드럼",
+        "capacity": "21kg",
+        "powerConsumption": "430W (탈수 시 1150W)",
+        "monthlyUsageKWh": 23.0,
+        "monthlyCost": 5750,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2022",
+        "warrantyPeriod": "디지털 인버터 모터 평생보증"
+      }
+    ],
+    "asInfo": {
+      "center": "삼성전자 서비스",
+      "phone": "1588-3366",
+      "siteUrl": "https://www.samsungsvc.co.kr"
+    },
+    "consumables": [
+      {
+        "name": "세제 자동투입함 카트리지",
+        "price": 15000,
+        "buyUrl": "https://www.samsung.com/sec/accessories"
+      }
+    ]
+  },
+  {
+    "id": "kea-lg-dryer-tromm",
+    "brand": "LG전자",
+    "name": "LG 트롬 인버터 히트펌프 건조기",
+    "category": "dryer",
+    "icon": "Wind",
+    "modelPrefix": ["RD21", "RD20", "RG21", "RH19", "RH17", "RD", "RH"],
+    "subModels": [
+      {
+        "id": "lg-dryer-21kg",
+        "label": "트롬 21kg 대용량 듀얼인버터",
+        "capacity": "21kg",
+        "powerConsumption": "950W",
+        "monthlyUsageKWh": 28.5,
+        "monthlyCost": 7100,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
+        "warrantyPeriod": "듀얼 인버터 컴프레서/모터 10년"
+      },
+      {
+        "id": "lg-dryer-17kg",
+        "label": "트롬 17kg 표준형",
+        "capacity": "17kg",
+        "powerConsumption": "900W",
+        "monthlyUsageKWh": 25.0,
+        "monthlyCost": 6250,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "컴프레서 10년"
+      }
+    ],
+    "asInfo": {
+      "center": "LG전자 서비스센터",
+      "phone": "1544-7777",
+      "siteUrl": "https://www.lge.co.kr"
+    },
+    "consumables": [
+      {
+        "name": "2중 안심 보풀 안심 필터",
+        "price": 16000,
+        "buyUrl": "https://www.lge.co.kr/care-accessories"
+      }
+    ]
+  },
+  {
+    "id": "kea-lg-dishwasher-dios",
+    "brand": "LG전자",
+    "name": "LG 디오스 오브제 트루스팀 식기세척기",
+    "category": "dishwasher",
+    "icon": "Utensils",
+    "modelPrefix": ["DUBJ", "DUB", "DUE", "DFB", "DUE4"],
+    "subModels": [
+      {
+        "id": "lg-dishwasher-14p",
+        "label": "14인용 대용량 빌트인/프리스탠딩",
+        "capacity": "14인용",
+        "powerConsumption": "1600W (스팀 살균 가열)",
+        "monthlyUsageKWh": 26.5,
+        "monthlyCost": 6600,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
+        "warrantyPeriod": "인버터 DD모터 10년"
+      },
+      {
+        "id": "lg-dishwasher-12p",
+        "label": "12인용 표준형",
+        "capacity": "12인용",
+        "powerConsumption": "1500W",
+        "monthlyUsageKWh": 24.0,
+        "monthlyCost": 6000,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "인버터 DD모터 10년"
+      }
+    ],
+    "asInfo": {
+      "center": "LG전자 서비스센터",
+      "phone": "1544-7777",
+      "siteUrl": "https://www.lge.co.kr"
+    },
+    "consumables": [
+      {
+        "name": "식기세척기 전용 연수 정제소금 & 필터",
+        "price": 13000,
+        "buyUrl": "https://www.lge.co.kr"
+      }
+    ]
+  },
+  {
+    "id": "kea-cuckoo-cooker",
+    "brand": "쿠쿠전자",
+    "name": "쿠쿠 트윈프레셔 / 마스터셰프 IH 전기밥솥",
+    "category": "cooker",
+    "icon": "Utensils",
+    "modelPrefix": ["CRP-LHTR", "CRP-JHR", "CRP-FHR", "CRP-KHTR", "CRP-DHR", "CRP"],
+    "subModels": [
+      {
+        "id": "cuckoo-10p",
+        "label": "10인용 대용량 IH 압력밥솥",
+        "capacity": "10인용 (1.8L)",
+        "powerConsumption": "1455W (보온 85W)",
+        "monthlyUsageKWh": 32.4,
+        "monthlyCost": 8100,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "패킹 1년 / 모터 3년"
+      },
+      {
+        "id": "cuckoo-6p",
+        "label": "6인용 표준 IH 압력밥솥",
+        "capacity": "6인용 (1.08L)",
+        "powerConsumption": "1090W (보온 65W)",
+        "monthlyUsageKWh": 24.5,
+        "monthlyCost": 6100,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "패킹 1년 / 모터 3년"
+      }
+    ],
+    "asInfo": {
+      "center": "쿠쿠 고객만족센터",
+      "phone": "1588-8899",
+      "siteUrl": "https://www.cuckoo.co.kr"
+    },
+    "consumables": [
+      {
+        "name": "이중모션 실리콘 고무패킹",
+        "price": 11000,
+        "buyUrl": "https://www.cuckoo.co.kr"
+      }
+    ]
+  },
+  {
+    "id": "kea-samsung-tv-qled",
+    "brand": "삼성전자",
+    "name": "삼성 네오 QLED / OLED 4K 스마트 TV",
+    "category": "tv",
+    "icon": "Tv",
+    "modelPrefix": ["KQ98", "KQ85", "KQ75", "KQ65", "KQ55", "KU85", "KU75", "KU65", "KQ", "KU"],
+    "subModels": [
+      {
+        "id": "ss-tv-85",
+        "label": "85인치 초대형 (214cm)",
+        "capacity": "85인치",
+        "powerConsumption": "180W (대기 0.5W)",
+        "monthlyUsageKWh": 48.0,
+        "monthlyCost": 12000,
+        "releaseEnergyGrade": 2,
+        "releaseYear": "2024",
+        "warrantyPeriod": "패널 2년"
+      },
+      {
+        "id": "ss-tv-75",
+        "label": "75인치 대형 (189cm)",
+        "capacity": "75인치",
+        "powerConsumption": "140W (대기 0.5W)",
+        "monthlyUsageKWh": 38.5,
+        "monthlyCost": 9400,
+        "releaseEnergyGrade": 2,
+        "releaseYear": "2024",
+        "warrantyPeriod": "패널 2년"
+      },
+      {
+        "id": "ss-tv-65",
+        "label": "65인치 표준형 (163cm)",
+        "capacity": "65인치",
+        "powerConsumption": "110W (대기 0.5W)",
+        "monthlyUsageKWh": 29.5,
+        "monthlyCost": 7300,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "패널 2년"
+      }
+    ],
+    "asInfo": {
+      "center": "삼성전자 서비스",
+      "phone": "1588-3366",
+      "siteUrl": "https://www.samsungsvc.co.kr"
+    },
+    "consumables": []
+  },
+  {
+    "id": "kea-lg-purifier",
+    "brand": "LG전자",
+    "name": "LG 퓨리케어 360˚ 공기청정기 Alpha / Hit",
+    "category": "air_purifier",
+    "icon": "Wind",
+    "modelPrefix": ["AS35", "AS30", "AS28", "AS19", "AS15", "AS"],
+    "subModels": [
+      {
+        "id": "lg-purifier-2단",
+        "label": "30~35평형 2단 대용량 (클린부스터)",
+        "capacity": "30평형 (100㎡)",
+        "powerConsumption": "70W (취침 18W)",
+        "monthlyUsageKWh": 16.2,
+        "monthlyCost": 4100,
+        "releaseEnergyGrade": 2,
+        "releaseYear": "2024",
+        "warrantyPeriod": "인버터 모터 10년"
+      },
+      {
+        "id": "lg-purifier-1단",
+        "label": "18~20평형 1단 표준형",
+        "capacity": "19평형 (61.2㎡)",
+        "powerConsumption": "45W (취침 12W)",
+        "monthlyUsageKWh": 10.5,
+        "monthlyCost": 2600,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "인버터 모터 10년"
+      }
+    ],
+    "asInfo": {
+      "center": "LG전자 서비스센터",
+      "phone": "1544-7777",
+      "siteUrl": "https://www.lge.co.kr"
+    },
+    "consumables": [
+      {
+        "name": "360도 V필터 (항바이러스/초미세먼지)",
+        "price": 68000,
+        "buyUrl": "https://www.lge.co.kr/care-accessories"
+      }
+    ]
+  },
+  {
+    "id": "kea-winix-dehumidifier",
+    "brand": "위닉스",
+    "name": "위닉스 뽀송 인버터 대용량 제습기",
+    "category": "dehumidifier",
+    "icon": "Droplets",
+    "modelPrefix": ["DXJE", "DXJH", "DXTH", "DXSM", "DO2E", "DX"],
+    "subModels": [
+      {
+        "id": "winix-19l",
+        "label": "19L 뽀송 인버터 대용량",
+        "capacity": "19L / 일",
+        "powerConsumption": "290W",
+        "monthlyUsageKWh": 43.5,
+        "monthlyCost": 10800,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
+        "warrantyPeriod": "인버터 컴프레서 3년"
+      },
+      {
+        "id": "winix-16l",
+        "label": "16L 뽀송 표준형",
+        "capacity": "16L / 일",
+        "powerConsumption": "275W",
+        "monthlyUsageKWh": 38.0,
+        "monthlyCost": 9500,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "인버터 컴프레서 3년"
+      }
+    ],
+    "asInfo": {
+      "center": "위닉스 고객만족센터",
+      "phone": "1544-5032",
+      "siteUrl": "https://www.winix.com"
+    },
+    "consumables": [
+      {
+        "name": "복합 프리필터 및 탈취필터",
+        "price": 22000,
+        "buyUrl": "https://www.winix.com"
+      }
+    ]
+  },
+  {
+    "id": "kea-clover-water-dispenser",
+    "brand": "클로버 / 원봉",
+    "name": "클로버 스탠드형 / 데스크탑 냉온수기",
+    "category": "water_dispenser",
+    "icon": "Zap",
+    "modelPrefix": ["B19", "B14", "B26", "D14", "CLOVER"],
+    "subModels": [
+      {
+        "id": "clover-b19-stand",
+        "label": "스탠드형 B19 표준 (사무실/가정 겸용)",
+        "capacity": "냉수 3.0L / 온수 1.5L",
+        "powerConsumption": "가열 350W / 냉각 100W (합산 450W)",
+        "monthlyUsageKWh": 24.5,
+        "monthlyCost": 6100,
+        "releaseEnergyGrade": 2,
+        "releaseYear": "2023",
+        "warrantyPeriod": "컴프레서 3년"
+      },
+      {
+        "id": "clover-d14-desktop",
+        "label": "데스크탑 D14 미니형",
+        "capacity": "냉수 2.0L / 온수 1.2L",
+        "powerConsumption": "가열 300W / 냉각 90W (합산 390W)",
+        "monthlyUsageKWh": 19.8,
+        "monthlyCost": 4900,
+        "releaseEnergyGrade": 2,
+        "releaseYear": "2022",
+        "warrantyPeriod": "컴프레서 3년"
+      }
+    ],
+    "asInfo": {
+      "center": "클로버 고객지원센터",
+      "phone": "1588-4388",
+      "siteUrl": "http://www.clover.co.kr"
+    },
+    "consumables": [
+      {
+        "name": "위생 코크 노즐 세트",
+        "price": 12000,
+        "buyUrl": "http://www.clover.co.kr"
+      }
+    ]
+  },
+  {
+    "id": "kea-roborock-cleaner",
+    "brand": "로보락",
+    "name": "로보락 S8 / Saros / Q Revo 로봇청소기",
+    "category": "robot_cleaner",
+    "icon": "Disc",
+    "modelPrefix": ["SAROS", "S8M", "S8PU", "S8", "S7", "QREVO", "Q", "ROBOROCK"],
+    "subModels": [
+      {
+        "id": "roborock-s8-maxv",
+        "label": "S8 MaxV Ultra / Saros 플래그십",
+        "capacity": "배터리 5200mAh",
+        "powerConsumption": "72W (직배수/온수세척)",
+        "monthlyUsageKWh": 8.9,
+        "monthlyCost": 2200,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2024",
+        "warrantyPeriod": "본체 1년 / 모터 2년"
+      },
+      {
+        "id": "roborock-s8-pro",
+        "label": "S8 Pro Ultra 플래그십 (올인원 독)",
+        "capacity": "배터리 5200mAh",
+        "powerConsumption": "69W (도크 충전 및 건조)",
+        "monthlyUsageKWh": 8.4,
+        "monthlyCost": 2100,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "본체 1년 / 모터 2년"
+      },
+      {
+        "id": "roborock-q-revo",
+        "label": "Q Revo 회전 물걸레 가성비형",
+        "capacity": "배터리 5200mAh",
+        "powerConsumption": "55W",
+        "monthlyUsageKWh": 6.8,
+        "monthlyCost": 1700,
+        "releaseEnergyGrade": 1,
+        "releaseYear": "2023",
+        "warrantyPeriod": "본체 1년"
+      }
+    ],
+    "asInfo": {
+      "center": "로보락 공식 고객센터",
+      "phone": "1588-0000",
+      "siteUrl": "https://roborock.co.kr"
+    },
+    "consumables": [
+      {
+        "name": "더스트백 3L & 회전 물걸레 패드",
+        "price": 19900,
+        "buyUrl": "https://roborock.co.kr"
+      }
+    ]
+  }
+]

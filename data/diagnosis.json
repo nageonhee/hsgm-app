@@ -1,0 +1,63 @@
+{
+  "knownErrors": [
+    {
+      "code": "dE",
+      "deviceType": "washer",
+      "brand": "LG전자",
+      "model": "LG 트롬 오브제 세탁기",
+      "title": "도어 열림/잠금 감지 오류 (Door Error)",
+      "cause": "세탁기 문이 완전히 닫히지 않았거나 도어 고무 패킹 사이에 이물질이 끼어 센서가 미감지되었습니다.",
+      "selfRemedySteps": [
+        "세탁기 문을 살짝 밀어 '딸깍' 소리가 날 때까지 완전히 닫아주세요.",
+        "도어 테두리 고무 패스킹 주위에 빨랫감이나 머리카락 등 이물질이 끼어있는지 확인하고 닦아냅니다.",
+        "전원 플러그를 5분간 뽑았다가 다시 꽂아 재부팅을 시도합니다."
+      ],
+      "requiredPart": {
+        "name": "도어 래치 및 스위치 센서 부품",
+        "price": 18500,
+        "lowestPrice": "14,900원 (LG 공식몰)",
+        "buyUrl": "https://www.lge.co.kr"
+      },
+      "asBookingPreset": {
+        "symptom": "세탁기 전면 도어 잠금 불량(dE 에러코드 점멸)",
+        "estimatedVisitCost": "출장비 20,000원 (무상 보증기간 내 무료)"
+      }
+    },
+    {
+      "code": "E04",
+      "deviceType": "air_conditioner",
+      "brand": "LG전자",
+      "model": "LG 휘센 오브제타워 에어컨",
+      "title": "실외기 인버터 통신 불량 또는 과열 보호",
+      "cause": "실외기실 루버창이 닫혀 환기가 원활하지 않거나, 실외기 메인 PCB와 실내기 간 통신 신호 일시적 지연입니다.",
+      "selfRemedySteps": [
+        "실외기실의 갤러리(루버) 창문이 완전히 100% 개방되어 있는지 즉시 확인하세요.",
+        "실외기 주변에 환기를 방해하는 박스나 적재물이 있다면 치워주세요.",
+        "에어컨 전용 차단기(배전반)를 내린 후 10분 뒤 다시 올려보세요."
+      ],
+      "requiredPart": null,
+      "asBookingPreset": {
+        "symptom": "에어컨 냉방 중단 및 실외기 미작동(E04 에러)",
+        "estimatedVisitCost": "컴프레서 10년 무상보증 적용 대상"
+      }
+    },
+    {
+      "code": "5C",
+      "deviceType": "washer",
+      "brand": "삼성전자",
+      "model": "삼성 그랑데 세탁기",
+      "title": "배수 필터 막힘 또는 배수 펌프 이상 (Drain Error)",
+      "cause": "하단 배수 필터에 동전, 보풀, 이물질이 끼어 물이 정상적으로 배출되지 못하고 있습니다.",
+      "selfRemedySteps": [
+        "세탁기 하단 전면 커버를 열고 잔수 제거 호스로 물을 빼냅니다.",
+        "배수 필터를 왼쪽으로 돌려 분리한 후 칫솔로 깨끗이 세척합니다.",
+        "필터를 다시 결합하고 헹굼+탈수 코스를 1회 실행하여 배수 여부를 확인합니다."
+      ],
+      "requiredPart": null,
+      "asBookingPreset": {
+        "symptom": "탈수 불가 및 배수 안됨(5C/5E 에러)",
+        "estimatedVisitCost": "자가조치 95% 해결 가능"
+      }
+    }
+  ]
+}
