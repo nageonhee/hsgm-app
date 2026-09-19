@@ -295,7 +295,7 @@ export default function AddDevicePage() {
         if (done) break;
 
         bufferStr += decoder.decode(value, { stream: true });
-        const lines = bufferStr.split('\\n');
+        const lines = bufferStr.split('\n');
         bufferStr = lines.pop() || "";
 
         for (const line of lines) {
