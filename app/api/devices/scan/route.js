@@ -143,8 +143,9 @@ export async function POST(req) {
                   finalOutputs = eventData.data?.outputs;
                 }
                 
-                if (eventData.event === "error") {
-                  return sendError(eventData.message || "Dify 내부 실행 중 에러 발생");
+                if (eventData.event === "error" || eventData.event === "workflow_failed") {
+                  const errorMsg = eventData.error || eventData.data?.error || eventData.message || "Dify 내부 실행 중 에러가 발생했습니다.";
+                  return sendError(errorMsg);
                 }
               } catch (e) {
                 // Ignore incomplete JSON chunks
