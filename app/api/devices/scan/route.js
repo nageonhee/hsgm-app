@@ -142,13 +142,18 @@ export async function POST(req) {
                 }
                 
                 if (eventData.event === "workflow_finished") {
+                  // Dify가 실패 상태로 끝난 경우 에러 원문 그대로 전달
+                  if (eventData.data?.status === "failed") {
+                    const rawError = eventData.data?.error || "Dify workflow failed (원인 불명)";
+                    return sendError(`[Dify 에러] ${rawError}`);
+                  }
                   sendEvent("progress", { message: "결과 데이터 취합 중..." });
                   finalOutputs = eventData.data?.outputs;
                 }
                 
                 if (eventData.event === "error" || eventData.event === "workflow_failed") {
-                  const errorMsg = eventData.error || eventData.data?.error || eventData.message || "Dify 내부 실행 중 에러가 발생했습니다.";
-                  return sendError(errorMsg);
+                  const rawError = eventData.error || eventData.data?.error || eventData.message || "Dify 내부 실행 중 에러 (원인 불명)";
+                  return sendError(`[Dify 에러] ${rawError}`);
                 }
               } catch (e) {
                 // Ignore incomplete JSON chunks
@@ -158,8 +163,12 @@ export async function POST(req) {
         }
 
         if (!finalOutputs) {
-          return sendError("Dify 워크플로우가 종료되었으나 결과값이 없습니다.");
+          return sendError("Dify 워크플로우가 종료되었으나 결과값(outputs)이 비어있습니다.");
         }
+
+        // 디버깅용: Dify에서 실제로 넘어온 outputs 키 목록을 기록
+        const outputKeys = Object.keys(finalOutputs);
+        sendEvent("progress", { message: `Dify 응답 키: [${outputKeys.join(", ")}] - 결과 파싱 중...` });
 
         let result = {};
 
@@ -201,7 +210,7 @@ export async function POST(req) {
         } else {
           let failDataText = finalOutputs.question_data || finalOutputs.fail_data;
           
-          if (!failDataText) return sendError("분석에 실패했거나 반환된 결과가 없습니다. 사진을 다시 찍어주세요.");
+          if (!failDataText) return sendError(`Dify 결과를 파싱할 수 없습니다. outputs 원본: ${JSON.stringify(finalOutputs).substring(0, 500)}`);
 
           let parsed = {};
           try {
