@@ -26,82 +26,119 @@ export async function POST(req) {
 
     const mimeType = image.split(";")[0].split(":")[1] || "image/jpeg";
     const base64Data = image.split(",")[1];
+    const buffer = Buffer.from(base64Data, "base64");
 
-    // 1. 전문 계층형 AI Vision 프롬프트 로드
-    const promptPath = path.join(process.cwd(), "prompts", "device_scan_prompt.md");
-    let promptContent = fs.readFileSync(promptPath, "utf8");
+    const difyKey = process.env.DIFY_API_KEY;
+    const difyUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
 
-    // 사용자의 이전 답변 주입
-    if (answers && Object.keys(answers).length > 0) {
-      promptContent += `\n\n[사용자의 이전 단계 답변 내역 (User Answers)]:\n${JSON.stringify(
-        answers,
-        null,
-        2
-      )}\n\n위 답변들을 바탕으로 다음으로 좁힐 세부 질문(nextQuestion)을 만들거나, 충분히 특정되었다면 isFinal: true로 최종 상세 제원과 성능을 완성하세요.`;
-    }
-
-    const envModel = process.env.GEMINI_MODEL;
-    const targetModels = [
-      ...(envModel ? [envModel] : []),
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-1.5-pro",
-    ].filter((v, i, a) => a.indexOf(v) === i);
-
-    let rawText = "";
-
-    for (const modelName of targetModels) {
-      try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    { inlineData: { mimeType, data: base64Data } },
-                    { text: promptContent },
-                  ],
-                },
-              ],
-              generationConfig: {
-                temperature: 0.1,
-                responseMimeType: "application/json",
-              },
-            }),
-          }
-        );
-
-        if (res.ok) {
-          const data = await res.json();
-          rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (rawText) {
-            console.log(`[Gemini Vision ${modelName} 판독 성공]:`, rawText.slice(0, 150));
-            break;
-          }
-        } else {
-          const err = await res.json();
-          console.warn(`[Gemini Vision ${modelName} 호출 실패]:`, err?.error?.message);
-        }
-      } catch (e) {
-        console.warn(`[Gemini Vision ${modelName} 통신 오류]:`, e.message);
-      }
-    }
-
-    if (!rawText) {
+    if (!difyKey) {
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: "이미지 분석에 실패했습니다. 사진을 다시 촬영해 주세요.",
-        }),
+        JSON.stringify({ success: false, error: "DIFY_API_KEY가 설정되지 않았습니다." }),
         { status: 500, headers: { "Content-Type": "application/json; charset=utf-8" } }
       );
     }
 
-    const cleanJson = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
-    let result = JSON.parse(cleanJson);
+    // 1. Dify 파일 업로드 API 호출
+    const formData = new FormData();
+    const blob = new Blob([buffer], { type: mimeType });
+    formData.append("file", blob, "image.jpg");
+    formData.append("user", "web-user");
+
+    const uploadRes = await fetch(`${difyUrl}/files/upload`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${difyKey}`
+      },
+      body: formData
+    });
+
+    if (!uploadRes.ok) {
+      const err = await uploadRes.json();
+      throw new Error(err.message || "Dify 파일 업로드 실패");
+    }
+
+    const uploadData = await uploadRes.json();
+    const fileId = uploadData.id;
+
+    // 2. Dify 워크플로우 실행 API 호출
+    const runRes = await fetch(`${difyUrl}/workflows/run`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${difyKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        inputs: {
+          user_answers: JSON.stringify(answers || {})
+        },
+        response_mode: "blocking",
+        user: "web-user",
+        files: [
+          {
+            type: "image",
+            transfer_method: "local_file",
+            upload_file_id: fileId
+          }
+        ]
+      })
+    });
+
+    if (!runRes.ok) {
+      const err = await runRes.json();
+      throw new Error(err.message || "Dify 워크플로우 실행 실패");
+    }
+
+    const runData = await runRes.json();
+    const outputs = runData.data?.outputs;
+
+    if (!outputs) {
+      throw new Error("Dify 워크플로우 결과값이 없습니다.");
+    }
+
+    let result = {};
+
+    // 3. Dify 출력값 파싱 (is_success 여부에 따른 분기)
+    // 성공 시 model_data, 실패 시 question_data가 반환되는 아키텍처
+    if (outputs.is_success === "true" || outputs.is_success === true || outputs.success_data || outputs.model_data) {
+      const modelDataText = outputs.model_data || outputs.success_data;
+      const parsed = typeof modelDataText === "string" ? JSON.parse(modelDataText) : modelDataText;
+      
+      result = {
+        ...parsed,
+        isFinal: true,
+        name: parsed.exact_model_name || "",
+        brand: parsed.manufacturer || "",
+        category: parsed.category || "air_conditioner",
+        power: parsed.power_consumption || "",
+        energyGrade: Number(parsed.energy_efficiency) || 1,
+        consumables: parsed.consumables || [],
+        asInfo: {
+          center: parsed.as_info?.center_name || `${parsed.manufacturer || "제조사"} 고객센터`,
+          phone: parsed.as_info?.phone || "",
+          siteUrl: parsed.as_info?.site_url || ""
+        },
+        manualUrl: parsed.manual_url || "",
+        releaseYear: parsed.purchase_year || "2024",
+      };
+    } else {
+      const failDataText = outputs.question_data || outputs.fail_data;
+      const parsed = typeof failDataText === "string" ? JSON.parse(failDataText) : failDataText;
+      
+      result = {
+        isFinal: false,
+        success: true,
+        nextQuestion: parsed.next_question || "추가 정보가 필요합니다.",
+        options: parsed.candidate_options || [],
+        category: parsed.category || "",
+        brand: parsed.manufacturer || "",
+        reason: parsed.reason_if_failed || ""
+      };
+
+      // 실패 시 질문 데이터 즉시 반환
+      return new Response(JSON.stringify(result), {
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+      });
+    }
 
     // 2. 최종 모델이 확정된 경우 (isFinal: true), 한국에너지공단 실시간 OpenAPI로 제원 정밀 검증
     if (result.isFinal) {
@@ -140,11 +177,7 @@ export async function POST(req) {
         releaseEnergyGrade: result.releaseEnergyGrade || result.energyGrade || 1,
         releaseYear: result.releaseYear || result.specs?.releaseYear || "2024",
         specs: result.specs || {},
-        asInfo: result.asInfo || {
-          center: `${result.brand || "제조사"} 공식 서비스센터`,
-          phone: "1544-7777",
-          siteUrl: "https://www.lge.co.kr",
-        },
+        asInfo: result.asInfo,
         consumables: result.consumables || [],
       });
 
