@@ -127,15 +127,18 @@ export async function POST(req) {
               try {
                 const eventData = JSON.parse(dataStr);
                 
+                // 노드(스텝) 시작 알림
                 if (eventData.event === "node_started") {
-                  let title = eventData.data?.title || "분석";
-                  // 사용자에게 보여줄 노드명 정제
-                  if (title.includes("Vision") || title.includes("Start")) title = "가전제품 정밀 시각 판독";
-                  else if (title.includes("Fact")) title = "스펙 팩트 체크 및 수집";
-                  else if (title.includes("Consultant") || title.includes("Question")) title = "추가 좁혀가기 질문 생성";
-                  else if (title.includes("Condition") || title.includes("Branch")) title = "결과 분기 판정";
-                  
-                  sendEvent("progress", { message: `${title} 중...` });
+                  const nodeName = eventData.data?.title || "진행";
+                  if (nodeName.includes("Vision") || nodeName.includes("사진") || nodeName.includes("판독")) {
+                    sendEvent("progress", { message: "가전제품 정밀 시각 판독 중..." });
+                  } else if (nodeName.includes("Fact") || nodeName.includes("검색")) {
+                    sendEvent("progress", { message: "스펙 팩트 체크 및 수집 중..." });
+                  } else if (nodeName.includes("Consultant") || nodeName.includes("작성") || nodeName.includes("정리")) {
+                    sendEvent("progress", { message: "AI 분석 결과 검증 및 폼 작성 중..." });
+                  } else {
+                    sendEvent("progress", { message: `${nodeName} 단계 분석 중...` });
+                  }
                 }
                 
                 if (eventData.event === "workflow_finished") {
