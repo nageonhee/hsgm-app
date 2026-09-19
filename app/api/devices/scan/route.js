@@ -6,227 +6,276 @@ import { evaluateDeviceGrade } from "@/lib/energyGrade";
 export const dynamic = "force-dynamic";
 
 export async function POST(req) {
+  let requestData;
   try {
-    const { image, answers = {} } = await req.json();
-
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ success: false, error: "GEMINI_API_KEY가 설정되지 않았습니다." }),
-        { status: 500, headers: { "Content-Type": "application/json; charset=utf-8" } }
-      );
-    }
-
-    if (!image || !image.includes("base64,")) {
-      return new Response(
-        JSON.stringify({ success: false, error: "유효한 이미지 데이터가 없습니다." }),
-        { status: 400, headers: { "Content-Type": "application/json; charset=utf-8" } }
-      );
-    }
-
-    const mimeType = image.split(";")[0].split(":")[1] || "image/jpeg";
-    const base64Data = image.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-
-    const difyKey = process.env.DIFY_API_KEY;
-    const difyUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
-
-    if (!difyKey) {
-      return new Response(
-        JSON.stringify({ success: false, error: "DIFY_API_KEY가 설정되지 않았습니다." }),
-        { status: 500, headers: { "Content-Type": "application/json; charset=utf-8" } }
-      );
-    }
-
-    // 1. Dify 파일 업로드 API 호출
-    const formData = new FormData();
-    const blob = new Blob([buffer], { type: mimeType });
-    formData.append("file", blob, "image.jpg");
-    formData.append("user", "web-user");
-
-    const uploadRes = await fetch(`${difyUrl}/files/upload`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${difyKey}`
-      },
-      body: formData
-    });
-
-    if (!uploadRes.ok) {
-      const err = await uploadRes.json();
-      throw new Error(err.message || "Dify 파일 업로드 실패");
-    }
-
-    const uploadData = await uploadRes.json();
-    const fileId = uploadData.id;
-
-    // 2. Dify 워크플로우 실행 API 호출
-    const runRes = await fetch(`${difyUrl}/workflows/run`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${difyKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        inputs: {
-          user_answers: JSON.stringify(answers || {}),
-          image: {
-            transfer_method: "local_file",
-            upload_file_id: fileId,
-            type: "image"
-          }
-        },
-        response_mode: "blocking",
-        user: "web-user"
-      })
-    });
-
-    if (!runRes.ok) {
-      const err = await runRes.json();
-      throw new Error(err.message || "Dify 워크플로우 실행 실패");
-    }
-
-    const runData = await runRes.json();
-    const outputs = runData.data?.outputs;
-
-    if (!outputs) {
-      throw new Error("Dify 워크플로우 결과값이 없습니다.");
-    }
-
-    let result = {};
-
-    // 3. Dify 출력값 파싱 (is_success 여부에 따른 분기)
-    // 성공 시 model_data, 실패 시 question_data가 반환되는 아키텍처
-    if (outputs.is_success === "true" || outputs.is_success === true || outputs.success_data || outputs.model_data) {
-      let modelDataText = outputs.model_data || outputs.success_data;
-      
-      if (!modelDataText) {
-        throw new Error("분석에 성공했으나 스펙 데이터가 없습니다.");
-      }
-
-      let parsed = {};
-      try {
-        if (typeof modelDataText === "string") {
-          modelDataText = modelDataText.replace(/```json/gi, "").replace(/```/g, "").trim();
-          parsed = JSON.parse(modelDataText);
-        } else {
-          parsed = modelDataText;
-        }
-      } catch(err) {
-        console.error("JSON 파싱 에러(성공 분기):", modelDataText);
-        throw new Error("스펙 데이터를 파싱할 수 없습니다: " + err.message);
-      }
-      
-      result = {
-        ...parsed,
-        isFinal: true,
-        name: parsed.exact_model_name || "",
-        brand: parsed.manufacturer || "",
-        category: parsed.category || "air_conditioner",
-        power: parsed.power_consumption || "",
-        energyGrade: Number(parsed.energy_efficiency) || 1,
-        consumables: parsed.consumables || [],
-        asInfo: {
-          center: parsed.as_info?.center_name || `${parsed.manufacturer || "제조사"} 고객센터`,
-          phone: parsed.as_info?.phone || "",
-          siteUrl: parsed.as_info?.site_url || ""
-        },
-        manualUrl: parsed.manual_url || "",
-        releaseYear: parsed.purchase_year || "2024",
-      };
-    } else {
-      let failDataText = outputs.question_data || outputs.fail_data;
-      
-      if (!failDataText) {
-        throw new Error("분석에 실패했거나 반환된 결과가 없습니다. 사진을 다시 찍어주세요.");
-      }
-
-      let parsed = {};
-      try {
-        if (typeof failDataText === "string") {
-          failDataText = failDataText.replace(/```json/gi, "").replace(/```/g, "").trim();
-          parsed = JSON.parse(failDataText);
-        } else {
-          parsed = failDataText;
-        }
-      } catch (err) {
-        console.error("JSON 파싱 에러(실패 분기):", failDataText);
-        throw new Error("질문 데이터를 파싱할 수 없습니다: " + err.message);
-      }
-      
-      result = {
-        isFinal: false,
-        success: true,
-        nextQuestion: parsed.next_question || "추가 정보가 필요합니다.",
-        options: parsed.candidate_options || [],
-        category: parsed.category || "",
-        brand: parsed.manufacturer || "",
-        reason: parsed.reason_if_failed || ""
-      };
-
-      // 실패 시 질문 데이터 즉시 반환
-      return new Response(JSON.stringify(result), {
-        headers: { "Content-Type": "application/json; charset=utf-8" },
-      });
-    }
-
-    // 2. 최종 모델이 확정된 경우 (isFinal: true), 한국에너지공단 실시간 OpenAPI로 제원 정밀 검증
-    if (result.isFinal) {
-      const modelName = result.model || result.name || "";
-      if (modelName.length >= 3) {
-        try {
-          const keaData = await keaService.searchDeviceByModel(modelName);
-          if (keaData) {
-            // 공단 실측 데이터가 있으면 공식 제원으로 정밀 보정
-            result.energyGrade = keaData.energyGrade || result.energyGrade;
-            result.releaseEnergyGrade = keaData.releaseEnergyGrade || result.energyGrade;
-            result.specs = {
-              ...(result.specs || {}),
-              powerConsumption: keaData.powerConsumption || result.power,
-              keaSource: keaData.source,
-            };
-          }
-        } catch (e) {
-          console.warn("KEA 정밀 보정 패스:", e.message);
-        }
-      }
-
-      // 3. 한국에너지공단 고시 기준 에너지 효율 등급 평가 적용
-      const evaluated = evaluateDeviceGrade({
-        name: result.name,
-        brand: result.brand,
-        model: result.model,
-        category: result.category || "air_conditioner",
-        icon: result.icon || "Zap",
-        status: false,
-        currentPower: 0,
-        monthlyUsageKWh: Number(result.monthlyUsageKWh || 35),
-        monthlyCost: Number(result.monthlyCost || 8500),
-        annualEstimatedCost: Number(result.monthlyCost || 8500) * 12,
-        energyGrade: result.energyGrade || 1,
-        releaseEnergyGrade: result.releaseEnergyGrade || result.energyGrade || 1,
-        releaseYear: result.releaseYear || result.specs?.releaseYear || "2024",
-        specs: result.specs || {},
-        asInfo: result.asInfo,
-        consumables: result.consumables || [],
-      });
-
-      result = {
-        ...result,
-        ...evaluated,
-        success: true,
-        isFinal: true,
-      };
-    }
-
-    return new Response(JSON.stringify(result), {
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-    });
-  } catch (err) {
-    console.error("Device Scan API Error:", err);
-    return new Response(
-      JSON.stringify({ success: false, error: err.message || "서버 처리 오류가 발생했습니다." }),
-      { status: 500, headers: { "Content-Type": "application/json; charset=utf-8" } }
-    );
+    requestData = await req.json();
+  } catch (e) {
+    return new Response(JSON.stringify({ error: "Invalid request payload" }), { status: 400 });
   }
+
+  const { image, answers = {} } = requestData;
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const sendEvent = (type, data) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type, ...data })}\n\n`));
+      };
+      
+      const sendError = (message) => {
+        sendEvent("error", { error: message });
+        controller.close();
+      };
+
+      try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        const difyKey = process.env.DIFY_API_KEY;
+        const difyUrl = process.env.DIFY_API_URL || "https://api.dify.ai/v1";
+
+        if (!difyKey) return sendError("DIFY_API_KEY가 설정되지 않았습니다.");
+        if (!image || !image.includes("base64,")) return sendError("유효한 이미지 데이터가 없습니다.");
+
+        const mimeType = image.split(";")[0].split(":")[1] || "image/jpeg";
+        const base64Data = image.split(",")[1];
+        const buffer = Buffer.from(base64Data, "base64");
+
+        sendEvent("progress", { message: "서버로 이미지 전송 중..." });
+
+        // 1. Dify 파일 업로드 API 호출
+        const formData = new FormData();
+        const blob = new Blob([buffer], { type: mimeType });
+        formData.append("file", blob, "image.jpg");
+        formData.append("user", "web-user");
+
+        const uploadRes = await fetch(`${difyUrl}/files/upload`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${difyKey}`
+          },
+          body: formData
+        });
+
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json().catch(() => ({}));
+          return sendError(err.message || "Dify 파일 업로드 실패");
+        }
+
+        const uploadData = await uploadRes.json();
+        const fileId = uploadData.id;
+
+        sendEvent("progress", { message: "AI 비전 모델 초기화 중..." });
+
+        // 2. Dify 워크플로우 실행 API 호출 (Streaming 모드)
+        const runRes = await fetch(`${difyUrl}/workflows/run`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${difyKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            inputs: {
+              user_answers: JSON.stringify(answers || {}),
+              image: {
+                transfer_method: "local_file",
+                upload_file_id: fileId,
+                type: "image"
+              }
+            },
+            response_mode: "streaming",
+            user: "web-user"
+          })
+        });
+
+        if (!runRes.ok) {
+          const err = await runRes.json().catch(() => ({}));
+          return sendError(err.message || "Dify 워크플로우 실행 실패");
+        }
+
+        // SSE 스트림 리더
+        const reader = runRes.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let bufferStr = "";
+        let finalOutputs = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          bufferStr += decoder.decode(value, { stream: true });
+          const lines = bufferStr.split('\n');
+          bufferStr = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const dataStr = line.replace("data: ", "").trim();
+              if (!dataStr) continue;
+              
+              try {
+                const eventData = JSON.parse(dataStr);
+                
+                if (eventData.event === "node_started") {
+                  let title = eventData.data?.title || "분석";
+                  // 사용자에게 보여줄 노드명 정제
+                  if (title.includes("Vision") || title.includes("Start")) title = "가전제품 정밀 시각 판독";
+                  else if (title.includes("Fact")) title = "스펙 팩트 체크 및 수집";
+                  else if (title.includes("Consultant") || title.includes("Question")) title = "추가 좁혀가기 질문 생성";
+                  else if (title.includes("Condition") || title.includes("Branch")) title = "결과 분기 판정";
+                  
+                  sendEvent("progress", { message: `${title} 중...` });
+                }
+                
+                if (eventData.event === "workflow_finished") {
+                  sendEvent("progress", { message: "결과 데이터 취합 중..." });
+                  finalOutputs = eventData.data?.outputs;
+                }
+                
+                if (eventData.event === "error") {
+                  return sendError(eventData.message || "Dify 내부 실행 중 에러 발생");
+                }
+              } catch (e) {
+                // Ignore incomplete JSON chunks
+              }
+            }
+          }
+        }
+
+        if (!finalOutputs) {
+          return sendError("Dify 워크플로우가 종료되었으나 결과값이 없습니다.");
+        }
+
+        let result = {};
+
+        // 3. Dify 출력값 파싱
+        if (finalOutputs.is_success === "true" || finalOutputs.is_success === true || finalOutputs.success_data || finalOutputs.model_data) {
+          let modelDataText = finalOutputs.model_data || finalOutputs.success_data;
+          
+          if (!modelDataText) return sendError("분석에 성공했으나 스펙 데이터가 없습니다.");
+
+          let parsed = {};
+          try {
+            if (typeof modelDataText === "string") {
+              modelDataText = modelDataText.replace(/```json/gi, "").replace(/```/g, "").trim();
+              parsed = JSON.parse(modelDataText);
+            } else {
+              parsed = modelDataText;
+            }
+          } catch(err) {
+            return sendError("스펙 데이터를 파싱할 수 없습니다: " + err.message);
+          }
+          
+          result = {
+            ...parsed,
+            isFinal: true,
+            name: parsed.exact_model_name || "",
+            brand: parsed.manufacturer || "",
+            category: parsed.category || "air_conditioner",
+            power: parsed.power_consumption || "",
+            energyGrade: Number(parsed.energy_efficiency) || 1,
+            consumables: parsed.consumables || [],
+            asInfo: {
+              center: parsed.as_info?.center_name || `${parsed.manufacturer || "제조사"} 고객센터`,
+              phone: parsed.as_info?.phone || "",
+              siteUrl: parsed.as_info?.site_url || ""
+            },
+            manualUrl: parsed.manual_url || "",
+            releaseYear: parsed.purchase_year || "2024",
+          };
+        } else {
+          let failDataText = finalOutputs.question_data || finalOutputs.fail_data;
+          
+          if (!failDataText) return sendError("분석에 실패했거나 반환된 결과가 없습니다. 사진을 다시 찍어주세요.");
+
+          let parsed = {};
+          try {
+            if (typeof failDataText === "string") {
+              failDataText = failDataText.replace(/```json/gi, "").replace(/```/g, "").trim();
+              parsed = JSON.parse(failDataText);
+            } else {
+              parsed = failDataText;
+            }
+          } catch (err) {
+            return sendError("질문 데이터를 파싱할 수 없습니다: " + err.message);
+          }
+          
+          result = {
+            isFinal: false,
+            success: true,
+            nextQuestion: parsed.next_question || "추가 정보가 필요합니다.",
+            options: parsed.candidate_options || [],
+            category: parsed.category || "",
+            brand: parsed.manufacturer || "",
+            reason: parsed.reason_if_failed || ""
+          };
+
+          sendEvent("final", { result });
+          return controller.close();
+        }
+
+        // 4. 에너지 공단 연동 및 최종 보정
+        if (result.isFinal) {
+          sendEvent("progress", { message: "한국에너지공단 표준 데이터 실시간 대조 중..." });
+          
+          const modelName = result.model || result.name || "";
+          if (modelName.length >= 3) {
+            try {
+              const keaData = await keaService.searchDeviceByModel(modelName);
+              if (keaData) {
+                result.energyGrade = keaData.energyGrade || result.energyGrade;
+                result.releaseEnergyGrade = keaData.releaseEnergyGrade || result.energyGrade;
+                result.specs = {
+                  ...(result.specs || {}),
+                  powerConsumption: keaData.powerConsumption || result.power,
+                  keaSource: keaData.source,
+                };
+              }
+            } catch (e) {
+              console.warn("KEA 정밀 보정 패스:", e.message);
+            }
+          }
+
+          sendEvent("progress", { message: "최종 예상 전기요금 시뮬레이션 중..." });
+
+          const evaluated = evaluateDeviceGrade({
+            name: result.name,
+            brand: result.brand,
+            model: result.model,
+            category: result.category || "air_conditioner",
+            icon: result.icon || "Zap",
+            status: false,
+            currentPower: 0,
+            monthlyUsageKWh: Number(result.monthlyUsageKWh || 35),
+            monthlyCost: Number(result.monthlyCost || 8500),
+            annualEstimatedCost: Number(result.monthlyCost || 8500) * 12,
+            energyGrade: result.energyGrade || 1,
+            releaseEnergyGrade: result.releaseEnergyGrade || result.energyGrade || 1,
+            releaseYear: result.releaseYear || result.specs?.releaseYear || "2024",
+            specs: result.specs || {},
+            asInfo: result.asInfo,
+            consumables: result.consumables || [],
+          });
+
+          result = {
+            ...result,
+            ...evaluated,
+            success: true,
+            isFinal: true,
+          };
+        }
+
+        sendEvent("final", { result });
+        controller.close();
+      } catch (err) {
+        console.error("Device Scan API Error:", err);
+        sendError(err.message || "서버 처리 오류가 발생했습니다.");
+      }
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive"
+    }
+  });
 }

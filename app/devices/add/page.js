@@ -281,52 +281,100 @@ export default function AddDevicePage() {
         body: JSON.stringify({ image: base64Image, answers }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "가전 정보를 식별하지 못했습니다.");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "가전 정보를 식별하지 못했습니다.");
       }
 
-      // 1. 모델이 특정되어 최종 확정된 경우 (isFinal: true)
-      if (data.isFinal || (data.status === "complete" && data.device)) {
-        setAnalyzedDevice(data.device || data);
-        setIsManualMode(false);
-        setStep("final_confirm");
-        return;
-      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let bufferStr = "";
 
-      // 2. 추가 좁혀가기 질문이 있는 경우 (nextQuestion)
-      if (data.nextQuestion) {
-        setCurrentQuestion(data.nextQuestion);
-        setAnalyzedDevice(data.temporaryDevice || data);
-        setShowCustomInput(false);
-        setCustomInputText("");
-        setStep("refining");
-        return;
-      }
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      // 3. RAG 대화형 역질문이 필요한 경우
-      if (data.status === "needs_clarification") {
-        setCurrentQuestion({
-          key: "subModelChoice",
-          step: 1,
-          totalExpectedSteps: 1,
-          title: data.question,
-          description: `${data.matchedBrand || "공인 제조사"} 한국에너지공단 표준 카탈로그에서 확인된 라인업입니다.`,
-          options: (data.options || []).map((o) => o.label || o.capacity || o.id),
-          rawOptions: data.options || [],
-          partialDevice: data.partialDevice,
-        });
-        setAnalyzedDevice(data.partialDevice || data);
-        setShowCustomInput(false);
-        setCustomInputText("");
-        setStep("refining");
-        return;
-      }
+        bufferStr += decoder.decode(value, { stream: true });
+        const lines = bufferStr.split('\\n');
+        bufferStr = lines.pop() || "";
 
-      // 기본 fallback: 최종 확인 이동
-      setAnalyzedDevice(data.device || data);
-      setStep("final_confirm");
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const dataStr = line.replace("data: ", "").trim();
+            if (!dataStr) continue;
+
+            try {
+              const eventData = JSON.parse(dataStr);
+              
+              if (eventData.type === "progress") {
+                setScanProgressText(eventData.message);
+              } else if (eventData.type === "error") {
+                throw new Error(eventData.error || "분석 중 오류 발생");
+              } else if (eventData.type === "final") {
+                const data = eventData.result;
+                
+                // 1. 모델이 특정되어 최종 확정된 경우
+                if (data.isFinal || (data.status === "complete" && data.device)) {
+                  setAnalyzedDevice(data.device || data);
+                  setIsManualMode(false);
+                  setStep("final_confirm");
+                  return;
+                }
+
+                // 2. 추가 좁혀가기 질문이 있는 경우
+                if (data.nextQuestion) {
+                  const options = Array.isArray(data.options) && data.options.length > 0 
+                    ? [...data.options] 
+                    : [];
+                  
+                  if (!options.includes("잘 모르겠음")) {
+                    options.push("잘 모르겠음");
+                  }
+
+                  setCurrentQuestion({
+                    title: data.nextQuestion,
+                    description: data.reason || "정확한 판독을 위해 추가 정보가 필요합니다.",
+                    options: options,
+                  });
+                  setAnalyzedDevice(data.temporaryDevice || data);
+                  setShowCustomInput(false);
+                  setCustomInputText("");
+                  setStep("refining");
+                  return;
+                }
+
+                // 3. RAG 대화형 역질문이 필요한 경우
+                if (data.status === "needs_clarification") {
+                  setCurrentQuestion({
+                    key: "subModelChoice",
+                    step: 1,
+                    totalExpectedSteps: 1,
+                    title: data.question,
+                    description: `${data.matchedBrand || "공인 제조사"} 한국에너지공단 표준 카탈로그에서 확인된 라인업입니다.`,
+                    options: (data.options || []).map((o) => o.label || o.capacity || o.id),
+                    rawOptions: data.options || [],
+                    partialDevice: data.partialDevice,
+                  });
+                  setAnalyzedDevice(data.partialDevice || data);
+                  setShowCustomInput(false);
+                  setCustomInputText("");
+                  setStep("refining");
+                  return;
+                }
+
+                // 기본 fallback
+                setAnalyzedDevice(data.device || data);
+                setStep("final_confirm");
+                return;
+              }
+            } catch (e) {
+              if (e.message !== "Unexpected end of JSON input" && !e.message.includes("Unexpected token")) {
+                throw e;
+              }
+            }
+          }
+        }
+      }
     } catch (err) {
       console.error("Scan Error:", err);
       setErrorMessage(
