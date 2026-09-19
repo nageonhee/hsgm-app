@@ -342,7 +342,7 @@ export default function AddDevicePage() {
 
                   setCurrentQuestion({
                     title: data.nextQuestion,
-                    description: `[${brandName}] [${catKo}]을(를) 확인하였습니다. 외견으로는 알 수 없는 정보를 확인하기 위해 아래 질문에 답변해 주세요.`,
+                    description: `${brandName} ${catKo}을(를) 확인하였습니다. 외견으로는 알 수 없는 정보를 확인하기 위해 아래 질문에 답변해 주세요.`,
                     options: options,
                   });
                   setAnalyzedDevice(data.temporaryDevice || data);
