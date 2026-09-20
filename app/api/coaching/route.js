@@ -63,9 +63,7 @@ export async function POST(req) {
     const envModel = process.env.GEMINI_MODEL;
     const targetModels = [
       ...(envModel ? [envModel] : []),
-      "gemini-3.5-flash-lite",
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
+      "gemini-1.5-flash", // fallback if env is not set
     ].filter((v, i, a) => a.indexOf(v) === i);
 
     let geminiRes = null;
