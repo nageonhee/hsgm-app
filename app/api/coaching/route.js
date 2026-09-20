@@ -60,14 +60,16 @@ export async function POST(req) {
     });
 
     // 4. env 파일 지정 모델 및 fallback 모델 설정
-    const envModel = process.env.GEMINI_MODEL;
+    const envModel = process.env.GEMINI_MODEL?.trim();
     const targetModels = [
       ...(envModel ? [envModel] : []),
-      "gemini-1.5-flash", // fallback if env is not set
+      "gemini-1.5-flash",
+      "gemini-1.5-flash-latest",
+      "gemini-1.0-pro",
     ].filter((v, i, a) => a.indexOf(v) === i);
 
     let geminiRes = null;
-    let lastErrorMsg = "";
+    let errors = [];
 
     for (const m of targetModels) {
       try {
@@ -87,15 +89,15 @@ export async function POST(req) {
           break;
         } else {
           const errData = await res.json().catch(() => null);
-          lastErrorMsg = errData?.error?.message || `Gemini API (${m}) 호출 실패 (${res.status})`;
+          errors.push(`[${m}]: ${errData?.error?.message || res.status}`);
         }
       } catch (e) {
-        lastErrorMsg = e.message;
+        errors.push(`[${m}]: ${e.message}`);
       }
     }
 
     if (!geminiRes || !geminiRes.ok) {
-      throw new Error(lastErrorMsg || "모든 Gemini AI 모델 통신에 실패했습니다.");
+      throw new Error(errors.join(" | ") || "모든 Gemini AI 모델 통신에 실패했습니다.");
     }
 
     // 6. Gemini SSE 응답을 실시간으로 디코딩하여 프론트엔드로 파이프 전달
