@@ -427,15 +427,17 @@ export default function AddDevicePage() {
       }
     }
 
+    const questionKey = currentQuestion.title || currentQuestion.key || "choice";
+
     const newAnswers = {
       ...accumulatedAnswers,
-      [currentQuestion.key || "choice"]: optionText,
+      [questionKey]: optionText,
     };
 
     const newHistory = [
       ...refineHistory,
       {
-        key: currentQuestion.key || "choice",
+        key: questionKey,
         title: currentQuestion.title,
         answer: optionText,
       },
