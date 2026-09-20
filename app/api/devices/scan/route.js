@@ -231,7 +231,8 @@ export async function POST(req) {
             options: parsed.candidate_options || [],
             category: parsed.category || "",
             brand: parsed.manufacturer || "",
-            reason: parsed.reason_if_failed || ""
+            reason: parsed.reason_if_failed || "",
+            candidates: parsed.candidates || []
           };
 
           sendEvent("final", { result });
