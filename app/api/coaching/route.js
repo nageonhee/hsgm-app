@@ -1,8 +1,8 @@
-import fs from 'fs';
-import path from 'path';
+import { COACHING_PROMPT } from '@/prompts/coaching_prompt';
 
-// Node.js 환경에서 fs 모듈을 사용해 프롬프트 파일을 읽어오기 위해 edge 런타임을 제거합니다.
-// export const runtime = "edge";
+// Node.js 환경에서 fs 모듈을 사용해 프롬프트 파일을 읽어오기 위해 edge 런타임을 제거했었으나,
+// 속도(Cold Start) 개선을 위해 프롬프트를 JS로 변환하고 edge 런타임을 복구합니다.
+export const runtime = "edge";
 
 export async function POST(req) {
   try {
@@ -33,8 +33,7 @@ export async function POST(req) {
         : "등록된 가전 없음";
 
     // 2. 시스템 프롬프트 지침 동적 로딩
-    const promptPath = path.join(process.cwd(), 'prompts', 'coaching_prompt.md');
-    let systemPrompt = fs.readFileSync(promptPath, 'utf8');
+    let systemPrompt = COACHING_PROMPT;
     
     // 플레이스홀더 치환
     systemPrompt = systemPrompt
