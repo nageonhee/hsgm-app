@@ -4,7 +4,11 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { useDevices } from "@/contexts/DeviceContext";
-import { calculateKepcoBill, getTariffTiers } from "@/lib/energyCalculator";
+import {
+  calculateDetailedBill,
+  getTariffTiers,
+  inferDevicePowerUsage,
+} from "@/lib/energyCalculator";
 import {
   AlertTriangle,
   TrendingUp,
@@ -14,6 +18,11 @@ import {
   ArrowLeft,
   Zap,
   CheckCircle2,
+  Sliders,
+  RotateCcw,
+  Sparkles,
+  Info,
+  Clock,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -28,8 +37,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export default function ProgressiveForecastPage() {
-  const { devices, loading } = useDevices();
+  const { devices = [], loading } = useDevices();
   const [aiPreventActive, setAiPreventActive] = useState(true);
+
+  // 사용자 인터랙티브 시뮬레이션: 주요 가전 시간 조절 오프셋 (단위: 시간)
+  const [adjustments, setAdjustments] = useState({});
 
   // 1. 현재 날짜 및 이번 달 총 일수 계산
   const now = new Date();
@@ -37,35 +49,81 @@ export default function ProgressiveForecastPage() {
   const currentDay = now.getDate();
   const totalDaysInMonth = new Date(now.getFullYear(), currentMonth, 0).getDate();
 
-  const { tier1Limit, tier2Limit, seasonName } = useMemo(() => getTariffTiers(currentMonth), [currentMonth]);
+  const { tier1Limit, tier2Limit, seasonName } = useMemo(
+    () => getTariffTiers(currentMonth),
+    [currentMonth]
+  );
 
-  const KEPCO_STAGES = useMemo(() => [
-    { stage: 1, range: `~ ${tier1Limit}kWh`, ratePerKWh: "120.0" },
-    { stage: 2, range: `${tier1Limit + 1} ~ ${tier2Limit}kWh`, ratePerKWh: "214.6" },
-    { stage: 3, range: `${tier2Limit}kWh 초과`, ratePerKWh: "307.3" }
-  ], [tier1Limit, tier2Limit]);
+  const KEPCO_STAGES = useMemo(
+    () => [
+      { stage: 1, range: `~ ${tier1Limit}kWh`, ratePerKWh: "120.0" },
+      { stage: 2, range: `${tier1Limit + 1} ~ ${tier2Limit}kWh`, ratePerKWh: "214.6" },
+      { stage: 3, range: `${tier2Limit}kWh 초과`, ratePerKWh: "307.3" },
+    ],
+    [tier1Limit, tier2Limit]
+  );
 
-  // 2. Supabase 등록 가전 기반 총 예상 전력량 집계 (등록 가전이 없을 시 표준 가구 기본값 280kWh 적용)
+  // 조절 가능한 피크 가전 목록 (상시 가동 냉장고/냉온수기는 가드레일 보호로 제외)
+  const adjustableDevices = useMemo(() => {
+    return devices.filter((d) => {
+      const cat = d.category || "";
+      return !cat.includes("refrigerator") && !cat.includes("water");
+    });
+  }, [devices]);
+
+  const handleHourChange = (id, deltaHours) => {
+    setAdjustments((prev) => ({
+      ...prev,
+      [id]: Number(deltaHours),
+    }));
+  };
+
+  const handleResetAdjustments = () => {
+    setAdjustments({});
+  };
+
+  // 2. 가전별 제원표 추론 기반 시뮬레이션 계산
   const calculatedMetrics = useMemo(() => {
-    const registeredKWh = devices.reduce((sum, d) => {
-      const val = Number(d.monthlyUsageKWh || d.monthlyUsage || 0);
-      return sum + (val > 0 ? val : 35);
-    }, 0);
+    let baseMonthlyKWh = 0;
+    let adjustedMonthlyKWh = 0;
 
-    const totalMonthlyCapacity = registeredKWh > 0 ? registeredKWh : 280;
-    const dailyAverage = totalMonthlyCapacity / totalDaysInMonth;
+    devices.forEach((d) => {
+      const ratedW = Number(
+        d.currentPower ||
+        String(d.power || d.specs?.powerConsumption || "").match(/\d+/)?.[0] ||
+        150
+      );
+      const defaultUsage = Number(d.monthlyUsageKWh || d.monthlyUsage || 35);
+      baseMonthlyKWh += defaultUsage;
 
-    // 오늘까지의 실제 누적 사용량
+      // 사용자 슬라이더 조절치 반영
+      const deltaHour = adjustments[d.id] || 0;
+      if (deltaHour !== 0) {
+        // 일일 추가/절감 kWh = (정격 W * 가동률 60% * 변경시간) / 1000
+        const deltaDailyKWh = (ratedW * 0.6 * deltaHour) / 1000;
+        const deltaMonthlyKWh = deltaDailyKWh * totalDaysInMonth;
+        adjustedMonthlyKWh += Math.max(0, defaultUsage + deltaMonthlyKWh);
+      } else {
+        adjustedMonthlyKWh += defaultUsage;
+      }
+    });
+
+    if (baseMonthlyKWh === 0) {
+      baseMonthlyKWh = 280;
+      adjustedMonthlyKWh = 280;
+    }
+
+    const dailyAverage = adjustedMonthlyKWh / totalDaysInMonth;
     const currentUsageKWh = Math.round(dailyAverage * currentDay * 10) / 10;
+    const projectedNormal = Math.round(adjustedMonthlyKWh * 10) / 10;
 
-    // 현재 페이스 지속 시 월말 예상 전력량
-    const projectedNormal = Math.round(totalMonthlyCapacity * 10) / 10;
+    // AI 누진 방지 쉴드: 조절 가능한 가전의 피크 시간 분산 및 대기전력 차단 (잔여기간 정밀 18~24% 절감)
+    const remainingDays = Math.max(1, totalDaysInMonth - currentDay);
+    const projectedShield = Math.round(
+      (currentUsageKWh + dailyAverage * 0.78 * remainingDays) * 10
+    ) / 10;
 
-    // AI 누진 방지 쉴드 작동 시 절감 전력량 (대기전력 및 피크제어로 잔여기간 22% 절감)
-    const remainingDays = totalDaysInMonth - currentDay;
-    const projectedShield = Math.round((currentUsageKWh + dailyAverage * 0.78 * remainingDays) * 10) / 10;
-
-    // 누진 돌파 구간 및 돌파 예상일자 계산
+    // 누진 돌파 구간 및 돌파 예상일자 판정
     let breakStage = null;
     let breakDateText = "월말까지 돌파 없음";
 
@@ -79,12 +137,15 @@ export default function ProgressiveForecastPage() {
       const daysToBreak = Math.ceil((tier2Limit - currentUsageKWh) / dailyAverage);
       const breachDay = Math.min(totalDaysInMonth, currentDay + daysToBreak);
       breakDateText = `${currentMonth}월 ${breachDay}일경`;
+    } else if (currentUsageKWh >= tier2Limit) {
+      breakStage = 3;
+      breakDateText = "이미 3단계 돌파 완료";
     } else if (currentUsageKWh >= tier1Limit) {
-      breakStage = currentUsageKWh >= tier2Limit ? 3 : 2;
-      breakDateText = "이미 돌파 완료";
+      breakStage = 2;
+      breakDateText = "이미 2단계 돌파 완료";
     }
 
-    // 시계열 그래프 데이터 동적 생성 (1일, 5일, 10일, 15일, 20일, 25일, 말일)
+    // 시계열 예측 차트 데이터
     const checkpoints = [1, 5, 10, 15, 20, 25, totalDaysInMonth];
     const forecastChart = checkpoints.map((day) => {
       const isPast = day <= currentDay;
@@ -102,10 +163,9 @@ export default function ProgressiveForecastPage() {
       };
     });
 
-    // 요금 계산
-    const normalBill = calculateKepcoBill(projectedNormal);
-    const shieldBill = calculateKepcoBill(projectedShield);
-    const savedAmount = Math.max(0, normalBill - shieldBill);
+    const normalBillDetail = calculateDetailedBill(projectedNormal, currentMonth);
+    const shieldBillDetail = calculateDetailedBill(projectedShield, currentMonth);
+    const savedAmount = Math.max(0, normalBillDetail.totalBill - shieldBillDetail.totalBill);
 
     return {
       currentUsageKWh,
@@ -114,11 +174,14 @@ export default function ProgressiveForecastPage() {
       breakStage,
       breakDateText,
       forecastChart,
-      normalBill,
-      shieldBill,
+      normalBill: normalBillDetail.totalBill,
+      shieldBill: shieldBillDetail.totalBill,
       savedAmount,
+      normalTier: normalBillDetail.currentTier,
+      shieldTier: shieldBillDetail.currentTier,
+      isAdjusted: Object.keys(adjustments).some((k) => adjustments[k] !== 0),
     };
-  }, [devices, currentMonth, currentDay, totalDaysInMonth, tier1Limit, tier2Limit]);
+  }, [devices, adjustments, currentMonth, currentDay, totalDaysInMonth, tier1Limit, tier2Limit]);
 
   return (
     <AppShell>
@@ -137,7 +200,7 @@ export default function ProgressiveForecastPage() {
             </Link>
           </Button>
           <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">
-            KEPCO 주택용 누진 요금제 실시간 연동
+            {seasonName} • KEPCO 누진 요율 실시간 매핑
           </Badge>
         </div>
 
@@ -178,7 +241,7 @@ export default function ProgressiveForecastPage() {
                 <strong className="text-amber-300 font-bold">
                   {calculatedMetrics.breakDateText}
                 </strong>
-                에 {calculatedMetrics.breakStage ? `${calculatedMetrics.breakStage}단계` : "다음 구간"}로 인상될 예정입니다. (현재 사용량:{" "}
+                에 {calculatedMetrics.breakStage ? `${calculatedMetrics.breakStage}단계` : "다음 구간"}로 인상될 예정입니다. (현재 누적:{" "}
                 <strong className="text-foreground">{calculatedMetrics.currentUsageKWh} kWh</strong>)
               </p>
             </div>
@@ -204,7 +267,8 @@ export default function ProgressiveForecastPage() {
               stg.stage === 1
                 ? calculatedMetrics.currentUsageKWh <= tier1Limit
                 : stg.stage === 2
-                ? calculatedMetrics.currentUsageKWh > tier1Limit && calculatedMetrics.currentUsageKWh <= tier2Limit
+                ? calculatedMetrics.currentUsageKWh > tier1Limit &&
+                  calculatedMetrics.currentUsageKWh <= tier2Limit
                 : calculatedMetrics.currentUsageKWh > tier2Limit;
 
             const isTarget = calculatedMetrics.breakStage === stg.stage;
@@ -251,8 +315,84 @@ export default function ProgressiveForecastPage() {
           })}
         </div>
 
+        {/* ★ [신규 위젯]: 가전별 실사용 시간 조절 누진세 시뮬레이터 ★ */}
+        {adjustableDevices.length > 0 && (
+          <div className="rounded-3xl bg-card border border-border p-6 backdrop-blur-xl space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                  <Sliders className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base text-foreground">
+                    가전별 가동시간 조절 시뮬레이터
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    하루 사용 시간을 늘리거나 줄였을 때의 월말 누진세 변화를 시뮬레이션합니다.
+                  </p>
+                </div>
+              </div>
+
+              {calculatedMetrics.isAdjusted && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleResetAdjustments}
+                  className="rounded-xl text-xs h-8 gap-1 border-border text-muted-foreground hover:text-foreground"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  초기화
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              {adjustableDevices.map((dev) => {
+                const val = adjustments[dev.id] || 0;
+                return (
+                  <div
+                    key={dev.id}
+                    className="p-3.5 rounded-2xl bg-muted/60 border border-border space-y-2 text-xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-foreground truncate max-w-[180px]">
+                        {dev.name}
+                      </span>
+                      <span
+                        className={`font-mono font-extrabold ${
+                          val > 0
+                            ? "text-red-400"
+                            : val < 0
+                            ? "text-emerald-400"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {val > 0 ? `+${val}시간/일` : val < 0 ? `${val}시간/일` : "기본 유지"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-muted-foreground">-3h</span>
+                      <input
+                        type="range"
+                        min="-3"
+                        max="3"
+                        step="0.5"
+                        value={val}
+                        onChange={(e) => handleHourChange(dev.id, e.target.value)}
+                        className="flex-1 h-1.5 bg-accent rounded-lg appearance-none cursor-pointer accent-primary"
+                      />
+                      <span className="text-[10px] text-muted-foreground">+3h</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* 월말 시계열 예측 차트 */}
-        <div className="rounded-3xl bg-card/70 border border-border p-6 backdrop-blur-xl space-y-5">
+        <div className="rounded-3xl bg-card border border-border p-6 backdrop-blur-xl space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="font-bold text-base text-foreground tracking-tight flex items-center gap-2">
@@ -260,12 +400,12 @@ export default function ProgressiveForecastPage() {
                 {currentMonth}월 누진 구간 돌파 시계열 예측
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                등록 가전 {devices.length}대 가동 패턴 및 기상청 주간 예보 모델 반영
+                등록 가전 {devices.length}대 제원표 프로파일 및 실시간 누진제 요율 반영
               </p>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground bg-accent/50 px-3 py-1.5 rounded-xl border border-border">
               <CloudSun className="w-4 h-4 text-amber-400" />
-              <span>실시간 요율 적용 중</span>
+              <span>한전 누진 3단계 기준선 적용</span>
             </div>
           </div>
 
@@ -276,17 +416,18 @@ export default function ProgressiveForecastPage() {
                 <YAxis stroke="#64748B" fontSize={11} tickLine={false} unit=" kWh" />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "rgba(15, 23, 42, 0.95)",
-                    borderColor: "rgba(255, 255, 255, 0.15)",
+                    backgroundColor: "var(--popover)",
+                    borderColor: "var(--border)",
                     borderRadius: "12px",
                     fontSize: "12px",
+                    color: "var(--popover-foreground)",
                   }}
                 />
                 {/* 누진 1단계 기준선 */}
                 <ReferenceLine
                   y={tier1Limit}
                   label={{
-                    value: `${tier1Limit} kWh (1단계 기준)`,
+                    value: `${tier1Limit} kWh (1단계 한계선)`,
                     fill: "#F87171",
                     fontSize: 11,
                     position: "insideTopRight",
@@ -299,7 +440,7 @@ export default function ProgressiveForecastPage() {
                 <ReferenceLine
                   y={tier2Limit}
                   label={{
-                    value: `${tier2Limit} kWh (2단계 기준)`,
+                    value: `${tier2Limit} kWh (2단계 한계선)`,
                     fill: "#EF4444",
                     fontSize: 11,
                     position: "insideTopRight",
@@ -342,12 +483,12 @@ export default function ProgressiveForecastPage() {
             <div className="flex items-center gap-4 flex-wrap">
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                일반 예측: {calculatedMetrics.projectedNormal} kWh (₩
+                예상 청구액: {calculatedMetrics.projectedNormal} kWh (₩
                 {calculatedMetrics.normalBill.toLocaleString()})
               </span>
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
-                AI 쉴드 적용: {calculatedMetrics.projectedShield} kWh (₩
+                AI 쉴드 적용 시: {calculatedMetrics.projectedShield} kWh (₩
                 {calculatedMetrics.shieldBill.toLocaleString()})
               </span>
             </div>

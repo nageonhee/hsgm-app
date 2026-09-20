@@ -44,13 +44,10 @@ export default function DynamicDashboard() {
   const tabsContainerRef = useRef(null);
 
   // 1. 홈 화면에 표시할 기기 필터링:
-  // - 기기 등록이 1개 이상 되어 있다면, 핀 고정(isPinned) 여부와 상관없이 무조건 1개 이상 홈 화면에 표시
+  // - 제품관리에서 '홈 표시'로 선택된(isPinned === true) 기기만 엄격히 표시
   const homeDevices = useMemo(() => {
     if (!devices || devices.length === 0) return [];
-    const pinned = devices.filter((d) => Boolean(d.isPinned ?? d.is_pinned));
-    if (pinned.length > 0) return pinned;
-    // 핀 고정된 기기가 없더라도 기기가 등록되어 있다면 첫번째 기기를 홈 기본 기기로 표시
-    return [devices[0]];
+    return devices.filter((d) => Boolean(d.isPinned));
   }, [devices]);
 
   // 2. 홈 화면 기기 목록이 변경될 때 선택된 기기 자동 동기화

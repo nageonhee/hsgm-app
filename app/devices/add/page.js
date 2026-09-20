@@ -26,6 +26,12 @@ import {
   Laptop,
   Check,
   CornerDownRight,
+  Tag,
+  Maximize2,
+  TrendingDown,
+  Info,
+  Clock,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +43,7 @@ export default function AddDevicePage() {
 
   // step: "select_scan" | "scanning" | "refining" | "final_confirm"
   const [step, setStep] = useState("select_scan");
+  const [scanMode, setScanMode] = useState("auto"); // "auto" | "label"
   const [capturedImage, setCapturedImage] = useState(null);
   const [scanProgressText, setScanProgressText] = useState("AI 비전 모델 초기화 중...");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,8 +92,8 @@ export default function AddDevicePage() {
     return () => stopCamera();
   }, []);
 
-  // 이미지 리사이징 및 고효율 압축 (전송 속도 및 Base64 페이로드 최적화)
-  const resizeImage = (source, maxDimension = 1024, quality = 0.75) => {
+  // 이미지 리사이징 및 Base64 최적화
+  const resizeImage = (source, maxDimension = 1024, quality = 0.8) => {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
@@ -94,7 +101,6 @@ export default function AddDevicePage() {
         let width = img.width;
         let height = img.height;
 
-        // 가로/세로 중 긴 축을 기준으로 다운스케일
         if (width > height) {
           if (width > maxDimension) {
             height = Math.round((height * maxDimension) / width);
@@ -113,7 +119,6 @@ export default function AddDevicePage() {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, 0, 0, width, height);
-        // OCR/비전 식별력은 유지하면서 수 MB의 이미지를 50~100KB 수준으로 90% 이상 경량화
         resolve(canvas.toDataURL("image/jpeg", quality));
       };
       img.onerror = () => resolve(source);
@@ -121,7 +126,7 @@ export default function AddDevicePage() {
     });
   };
 
-  // 실시간 비디오 프레임 캡처 (직접 캔버스 다운스케일 및 고효율 압축)
+  // 실시간 비디오 프레임 캡처
   const handleCapture = async () => {
     if (!videoRef.current || videoRef.current.videoWidth === 0) {
       alert("카메라 영상이 아직 준비되지 않았습니다. 잠시 후 다시 눌러주세요.");
@@ -129,44 +134,27 @@ export default function AddDevicePage() {
     }
     const video = videoRef.current;
     const canvas = document.createElement("canvas");
-    let width = video.videoWidth;
-    let height = video.videoHeight;
-    const maxDimension = 1024;
-
-    if (width > height) {
-      if (width > maxDimension) {
-        height = Math.round((height * maxDimension) / width);
-        width = maxDimension;
-      }
-    } else {
-      if (height > maxDimension) {
-        width = Math.round((width * maxDimension) / height);
-        height = maxDimension;
-      }
-    }
-
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(video, 0, 0, width, height);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+    const rawData = canvas.toDataURL("image/jpeg", 0.9);
     stopCamera();
-    const optimized = canvas.toDataURL("image/jpeg", 0.75);
+    const optimized = await resizeImage(rawData, 1024, 0.8);
     setCapturedImage(optimized);
     setAccumulatedAnswers({});
     setRefineHistory([]);
     runAiScan(optimized, {});
   };
 
-  // 갤러리 파일 업로드 (Object URL 기반 메모리 절약 및 고속 압축)
+  // 갤러리 파일 업로드
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       stopCamera();
       const objectUrl = URL.createObjectURL(file);
-      resizeImage(objectUrl, 1024, 0.75).then((optimized) => {
+      resizeImage(objectUrl, 1024, 0.8).then((optimized) => {
         URL.revokeObjectURL(objectUrl);
         setCapturedImage(optimized);
         setAccumulatedAnswers({});
@@ -176,7 +164,7 @@ export default function AddDevicePage() {
     }
   };
 
-  // [심사위원 평가용] 샘플 라벨/외형 실시간 테스트
+  // [시연용 원클릭 테스트 샘플]
   const handleSampleTest = (type) => {
     stopCamera();
     const canvas = document.createElement("canvas");
@@ -193,10 +181,9 @@ export default function AddDevicePage() {
     ctx.fillStyle = "#0F172A";
     ctx.font = "bold 32px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("스마트 기기 외형 / 에너지 라벨", canvas.width / 2, 70);
+    ctx.fillText("에너지소비효율등급 라벨", canvas.width / 2, 70);
 
     if (type === "laptop") {
-      // 노트북 외형 샘플
       ctx.beginPath();
       ctx.roundRect(80, 150, 440, 260, 16);
       ctx.fillStyle = "#1E293B";
@@ -214,7 +201,7 @@ export default function AddDevicePage() {
 
       ctx.fillStyle = "#FFFFFF";
       ctx.font = "bold 20px sans-serif";
-      ctx.fillText("Samsung / LG Laptop Visual", canvas.width / 2, 280);
+      ctx.fillText("Samsung Galaxy Book4 Pro", canvas.width / 2, 280);
     } else if (type === "aircon") {
       ctx.beginPath();
       ctx.arc(canvas.width / 2, 170, 70, 0, Math.PI * 2);
@@ -229,10 +216,10 @@ export default function AddDevicePage() {
       ctx.fillStyle = "#1E293B";
       ctx.textAlign = "left";
       ctx.font = "bold 22px sans-serif";
-      ctx.fillText("모델명: AF19TX772VFN (스탠드 에어컨)", 50, 310);
+      ctx.fillText("모델명: AF18DX936WFN (스탠드 에어컨)", 50, 310);
       ctx.fillText("제조자명: 삼성전자(주)", 50, 360);
-      ctx.fillText("정격 냉방 소비전력: 1750 W", 50, 410);
-      ctx.fillText("월간 소비전력량: 165.4 kWh/월", 50, 460);
+      ctx.fillText("정격 냉방 소비전력: 1450 W", 50, 410);
+      ctx.fillText("월간 소비전력량: 142.5 kWh/월", 50, 460);
       ctx.fillText("출시년월: 2024.03", 50, 510);
     } else {
       ctx.beginPath();
@@ -262,16 +249,16 @@ export default function AddDevicePage() {
     runAiScan(sampleBase64, {});
   };
 
-  // AI 분석 및 계층적 좁혀가기 API 호출
+  // Dify 스트리밍 기반 실시간 AI 스캔 및 제원 좁혀가기
   const runAiScan = async (base64Image, answers = {}) => {
     const isFirstScan = Object.keys(answers).length === 0;
     setStep("scanning");
     setErrorMessage("");
 
     if (isFirstScan) {
-      setScanProgressText("이미지 전송 및 AI 분석 모델 연결 중...");
+      setScanProgressText("이미지 전송 및 멀티모달 AI 비전 파이프라인 가동 중...");
     } else {
-      setScanProgressText("사용자 선택을 반영하여 세부 모델 및 성능 스펙을 좁혀가는 중...");
+      setScanProgressText("사용자 선택을 반영하여 세부 제원표 역산 중...");
     }
 
     try {
@@ -286,6 +273,7 @@ export default function AddDevicePage() {
         throw new Error(errorData.error || "가전 정보를 식별하지 못했습니다.");
       }
 
+      // 건희 님이 구축한 SSE 스트림 리더 가동
       const reader = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let bufferStr = "";
@@ -295,7 +283,7 @@ export default function AddDevicePage() {
         if (done) break;
 
         bufferStr += decoder.decode(value, { stream: true });
-        const lines = bufferStr.split('\n');
+        const lines = bufferStr.split("\n");
         bufferStr = lines.pop() || "";
 
         for (const line of lines) {
@@ -305,15 +293,16 @@ export default function AddDevicePage() {
 
             try {
               const eventData = JSON.parse(dataStr);
-              
+
+              // 1. 실시간 단계별 진행 로그 갱신 (20~30초 체감 대기시간 단축)
               if (eventData.type === "progress") {
                 setScanProgressText(eventData.message);
               } else if (eventData.type === "error") {
-                throw new Error(eventData.error || "분석 중 오류 발생");
+                throw new Error(eventData.error || "분석 중 오류가 발생했습니다.");
               } else if (eventData.type === "final") {
                 const data = eventData.result;
-                
-                // 1. 모델이 특정되어 최종 확정된 경우
+
+                // 2. 모델 특정 완료 (isFinal: true) -> 제원표 추론 결과 포함
                 if (data.isFinal || (data.status === "complete" && data.device)) {
                   setAnalyzedDevice(data.device || data);
                   setIsManualMode(false);
@@ -321,51 +310,30 @@ export default function AddDevicePage() {
                   return;
                 }
 
-                // 2. 추가 좁혀가기 질문이 있는 경우
+                // 3. 추가 역질문이 있는 경우 (Narrow-down)
                 if (data.nextQuestion) {
-                  const options = Array.isArray(data.options) && data.options.length > 0 
-                    ? [...data.options] 
-                    : [];
-                  
+                  const options = Array.isArray(data.options) && data.options.length > 0 ? [...data.options] : [];
                   if (!options.includes("잘 모르겠음")) {
                     options.push("잘 모르겠음");
                   }
-                  
+
                   let catKo = "스마트 기기";
-                  if (data.category === "air_conditioner" || data.category?.includes("에어컨")) catKo = "에어컨";
-                  else if (data.category === "refrigerator" || data.category?.includes("냉장고")) catKo = "냉장고";
-                  else if (data.category === "washer" || data.category?.includes("세탁기")) catKo = "세탁기";
-                  else if (data.category === "tv" || data.category?.includes("TV") || data.category?.includes("tv")) catKo = "TV";
+                  if (data.category?.includes("냉온수기") || data.category?.includes("water")) catKo = "냉온수기/정수기";
+                  else if (data.category?.includes("에어컨")) catKo = "에어컨";
+                  else if (data.category?.includes("냉장고")) catKo = "냉장고";
+                  else if (data.category?.includes("세탁기")) catKo = "세탁기";
+                  else if (data.category?.includes("TV") || data.category?.includes("tv")) catKo = "TV";
                   else if (data.category) catKo = data.category;
 
                   const brandName = data.brand || "해당";
 
                   setCurrentQuestion({
                     title: data.nextQuestion,
-                    description: data.reason || `${brandName} ${catKo}을(를) 확인하였습니다. 외견으로는 알 수 없는 정보를 확인하기 위해 아래 질문에 답변해 주세요.`,
+                    description: data.reason || `${brandName} ${catKo}의 후보군을 감지했습니다. 정확한 제원표 매핑을 위해 아래 항목을 선택해 주세요.`,
                     options: options,
                     candidates: data.candidates || [],
                   });
                   setAnalyzedDevice(data.temporaryDevice || data);
-                  setShowCustomInput(false);
-                  setCustomInputText("");
-                  setStep("refining");
-                  return;
-                }
-
-                // 3. RAG 대화형 역질문이 필요한 경우
-                if (data.status === "needs_clarification") {
-                  setCurrentQuestion({
-                    key: "subModelChoice",
-                    step: 1,
-                    totalExpectedSteps: 1,
-                    title: data.question,
-                    description: `${data.matchedBrand || "공인 제조사"} 한국에너지공단 표준 카탈로그에서 확인된 라인업입니다.`,
-                    options: (data.options || []).map((o) => o.label || o.capacity || o.id),
-                    rawOptions: data.options || [],
-                    partialDevice: data.partialDevice,
-                  });
-                  setAnalyzedDevice(data.partialDevice || data);
                   setShowCustomInput(false);
                   setCustomInputText("");
                   setStep("refining");
@@ -387,7 +355,6 @@ export default function AddDevicePage() {
       }
     } catch (err) {
       console.error("Scan Error:", err);
-      alert(`❌ AI 분석 오류:\n${err.message || "알 수 없는 오류가 발생했습니다."}\n\n잠시 후 다시 시도해주세요.`);
       setErrorMessage(
         err.message || "이미지 분석에 실패했습니다. 아래 [수동 입력]을 통해 바로 등록하실 수 있습니다."
       );
@@ -395,38 +362,9 @@ export default function AddDevicePage() {
     }
   };
 
-  // 질문에 대한 답변 선택 시 -> RAG 공인 제원 즉시 바인딩 (0ms)
+  // 객관식 선택 시 질문 좁혀가기
   const handleSelectAnswer = async (optionText) => {
     if (!currentQuestion) return;
-
-    // RAG 공인 옵션 클릭 시 즉각 확정
-    const rawMatch = currentQuestion.rawOptions?.find(
-      (o) => (o.label || o.capacity || o.id) === optionText
-    );
-
-    if (rawMatch && currentQuestion.partialDevice) {
-      try {
-        setScanProgressText("한국에너지공단 공인 제원을 즉시 바인딩 중...");
-        setStep("scanning");
-        const res = await fetch("/api/devices/scan", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            selectedOption: rawMatch,
-            partialDevice: currentQuestion.partialDevice,
-          }),
-        });
-        const data = await res.json();
-        if (data.success && data.device) {
-          setAnalyzedDevice(data.device);
-          setIsManualMode(false);
-          setStep("final_confirm");
-          return;
-        }
-      } catch (err) {
-        console.warn("즉시 바인딩 에러, 순차 스캔으로 전환:", err);
-      }
-    }
 
     const questionKey = currentQuestion.title || currentQuestion.key || "choice";
 
@@ -454,8 +392,6 @@ export default function AddDevicePage() {
 
     setAccumulatedAnswers(newAnswers);
     setRefineHistory(newHistory);
-
-    // 다음 단계 실행
     runAiScan(capturedImage, newAnswers);
   };
 
@@ -466,7 +402,7 @@ export default function AddDevicePage() {
     handleSelectAnswer(customInputText.trim());
   };
 
-  // 수동 Fallback 폼 활성화
+  // 수동 입력 Fallback
   const handleOpenManualForm = () => {
     stopCamera();
     setErrorMessage("");
@@ -480,7 +416,7 @@ export default function AddDevicePage() {
       monthlyUsageKWh: 120,
       monthlyCost: 28000,
       energyGrade: 1,
-      visionSummary: "사용자가 수동으로 직접 스펙을 입력하여 등록 중입니다.",
+      releaseEnergyGrade: 1,
       specs: { releaseYear: "2024", powerConsumption: "1500W" },
       asInfo: { center: "삼성전자 서비스센터", phone: "1588-3366", siteUrl: "https://www.samsungsvc.co.kr" },
     });
@@ -488,7 +424,7 @@ export default function AddDevicePage() {
     setStep("final_confirm");
   };
 
-  // 실제 Supabase DB 저장
+  // 최종 DB 저장 (DeviceContext 연동)
   const handleFinalSave = async () => {
     if (!analyzedDevice || isSubmitting) return;
     setIsSubmitting(true);
@@ -500,12 +436,12 @@ export default function AddDevicePage() {
         model: analyzedDevice.model || "MODEL-" + Date.now().toString().slice(-4),
         category: analyzedDevice.category || "air_conditioner",
         icon: analyzedDevice.icon || "Zap",
-        currentPower: 0,
+        currentPower: Number(analyzedDevice.currentPower || 0),
         monthlyUsageKWh: Number(analyzedDevice.monthlyUsageKWh || 0),
         monthlyCost: Number(analyzedDevice.monthlyCost || 0),
         annualEstimatedCost: Number(analyzedDevice.monthlyCost || 0) * 12,
         energyGrade: Number(analyzedDevice.energyGrade || 1),
-        releaseEnergyGrade: Number(analyzedDevice.energyGrade || 1),
+        releaseEnergyGrade: Number(analyzedDevice.releaseEnergyGrade || analyzedDevice.energyGrade || 1),
         specs: {
           powerConsumption: analyzedDevice.power || "미표기",
           releaseYear: analyzedDevice.releaseYear || "2024",
@@ -530,12 +466,12 @@ export default function AddDevicePage() {
   return (
     <AppShell>
       <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300 pb-16">
-        {/* 상단 네비게이션 */}
+        {/* 상단 헤더 */}
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-bold text-foreground tracking-tight">신규 기기 추가</h1>
           <Badge className="bg-primary/20 text-primary border-primary/30 text-xs flex items-center gap-1">
             <Sparkles className="w-3 h-3" />
-            AI 스마트 스캔
+            AI 멀티모달 & 제원 추론 스캔
           </Badge>
         </div>
 
@@ -560,10 +496,36 @@ export default function AddDevicePage() {
           </div>
         )}
 
-        {/* ── STEP 1: 촬영 / 업로드 / 시연용 테스트 ── */}
+        {/* ── STEP 1: 촬영 / 모드 전환 뷰파인더 ── */}
         {step === "select_scan" && (
           <div className="space-y-4">
-            {/* 1. 최상단: 카메라 뷰파인더 */}
+            {/* 촬영 모드 선택 탭 */}
+            <div className="grid grid-cols-2 p-1 bg-muted/60 rounded-2xl border border-border">
+              <button
+                onClick={() => setScanMode("auto")}
+                className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  scanMode === "auto"
+                    ? "bg-background text-primary shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+                가전 외형 촬영 (스펙 자동 유추)
+              </button>
+              <button
+                onClick={() => setScanMode("label")}
+                className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  scanMode === "label"
+                    ? "bg-background text-emerald-500 shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Tag className="w-3.5 h-3.5" />
+                에너지 라벨 촬영 (정밀 확정)
+              </button>
+            </div>
+
+            {/* 카메라 뷰파인더 */}
             <div className="relative rounded-3xl overflow-hidden bg-black aspect-[3/4] sm:aspect-[4/3] w-full border border-border shadow-2xl flex flex-col items-center justify-center">
               <video
                 ref={videoRef}
@@ -573,22 +535,41 @@ export default function AddDevicePage() {
                 className="w-full h-full object-cover"
               />
 
-              <div className="absolute inset-6 sm:inset-10 border-2 border-primary/70 rounded-2xl pointer-events-none flex flex-col justify-between p-3">
+              {/* 가이드 오버레이 */}
+              <div
+                className={`absolute pointer-events-none flex flex-col justify-between transition-all duration-300 ${
+                  scanMode === "label"
+                    ? "inset-12 sm:inset-16 border-2 border-dashed border-emerald-400/80 rounded-3xl p-3"
+                    : "inset-6 sm:inset-10 border-2 border-primary/70 rounded-2xl p-3"
+                }`}
+              >
                 <div className="flex justify-between">
-                  <span className="w-5 h-5 border-t-2 border-l-2 border-primary rounded-tl" />
-                  <span className="w-5 h-5 border-t-2 border-r-2 border-primary rounded-tr" />
+                  <span className={`w-5 h-5 border-t-2 border-l-2 rounded-tl ${scanMode === "label" ? "border-emerald-400" : "border-primary"}`} />
+                  <span className={`w-5 h-5 border-t-2 border-r-2 rounded-tr ${scanMode === "label" ? "border-emerald-400" : "border-primary"}`} />
                 </div>
-                <div className="text-center bg-black/70 backdrop-blur-md px-3.5 py-1.5 rounded-full mx-auto text-primary text-xs font-semibold border border-primary/30">
-                  라벨 명판 또는 제품 외형을 사각 영역에 맞춰주세요
+
+                <div className="text-center bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-full mx-auto text-xs font-semibold border border-white/10 shadow-lg">
+                  {scanMode === "label" ? (
+                    <span className="text-emerald-400 flex items-center gap-1.5">
+                      <Tag className="w-3 h-3" />
+                      원형/사각형 에너지 라벨(효율등급 마크)을 맞춰주세요
+                    </span>
+                  ) : (
+                    <span className="text-primary flex items-center gap-1.5">
+                      <Maximize2 className="w-3 h-3" />
+                      제품 전체 모습이 네모 안에 잘 보이도록 비춰주세요
+                    </span>
+                  )}
                 </div>
+
                 <div className="flex justify-between">
-                  <span className="w-5 h-5 border-b-2 border-l-2 border-primary rounded-bl" />
-                  <span className="w-5 h-5 border-b-2 border-r-2 border-primary rounded-br" />
+                  <span className={`w-5 h-5 border-b-2 border-l-2 rounded-bl ${scanMode === "label" ? "border-emerald-400" : "border-primary"}`} />
+                  <span className={`w-5 h-5 border-b-2 border-r-2 rounded-br ${scanMode === "label" ? "border-emerald-400" : "border-primary"}`} />
                 </div>
               </div>
             </div>
 
-            {/* 2. 촬영 / 파일 업로드 / 수동 입력 버튼 */}
+            {/* 촬영 컨트롤 */}
             <div className="space-y-2 pt-1">
               <button
                 onClick={handleCapture}
@@ -626,7 +607,7 @@ export default function AddDevicePage() {
               </div>
             </div>
 
-            {/* 3. 최하단: 시연용 원클릭 테스트 배너 (시연용 계정 전용) */}
+            {/* 시연용 원클릭 테스트 배너 */}
             {(isDemoUser || user?.id?.startsWith("demo-")) && (
               <div className="p-4 rounded-3xl bg-muted/40 border border-border space-y-2.5 shadow-sm mt-4">
                 <div className="flex items-center justify-between">
@@ -664,7 +645,7 @@ export default function AddDevicePage() {
           </div>
         )}
 
-        {/* ── STEP 2: 판독 중 애니메이션 ── */}
+        {/* ── STEP 2: 판독 중 스트리밍 애니메이션 ── */}
         {step === "scanning" && (
           <div className="py-16 flex flex-col items-center justify-center text-center space-y-6">
             <div className="relative w-36 h-36 rounded-3xl bg-primary/10 border border-primary/30 flex items-center justify-center overflow-hidden shadow-xl shadow-primary/20">
@@ -672,26 +653,25 @@ export default function AddDevicePage() {
               <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_15px_#3B82F6] animate-bounce top-1/2" />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 max-w-md mx-auto">
               <h3 className="text-lg font-bold text-foreground">
-                AI 스마트 스캔 분석 중
+                AI 스마트 비전 & 전력 추론 분석 중
               </h3>
-              <p className="text-xs sm:text-sm text-primary font-mono animate-pulse">
+              <p className="text-xs sm:text-sm text-primary font-mono animate-pulse min-h-[1.5rem]">
                 {scanProgressText}
               </p>
             </div>
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground bg-accent/50 px-4 py-2 rounded-full border border-border">
-              <Sparkles className="w-4 h-4 text-primary" />
-              외형 특징과 사용자 응답을 조합해 실제 모델명과 성능을 좁혀갑니다
+              <Sparkles className="w-4 h-4 text-primary shrink-0" />
+              웹 검색 15개 제원표 및 에너지공단 데이터와 실시간 대조 중입니다
             </div>
           </div>
         )}
 
-        {/* ── STEP 2.5: 대화형 점진적 좁혀가기 (Interactive Narrow-down) ── */}
+        {/* ── STEP 2.5: 대화형 점진적 좁혀가기 (Narrow-down) ── */}
         {step === "refining" && currentQuestion && (
           <div className="space-y-6 pt-2 animate-in slide-in-from-bottom-6 duration-500">
-            {/* 상단 브레드크럼 (지금까지 좁혀온 단계 요약) */}
             {refineHistory.length > 0 && (
               <div className="p-3.5 rounded-2xl bg-card border border-border shadow-xs flex items-center gap-2 flex-wrap">
                 <span className="text-[11px] font-bold text-muted-foreground shrink-0">좁혀온 내역:</span>
@@ -709,12 +689,11 @@ export default function AddDevicePage() {
               </div>
             )}
 
-            {/* 메인 질문 카드 (한 번에 1개의 질문만 순차 제시) */}
             <div className="bg-card border border-border p-6 sm:p-7 rounded-3xl shadow-xl space-y-6">
               <div className="text-center space-y-2 pb-1">
                 <div className="flex items-center justify-center gap-1.5">
                   <Badge className="bg-primary/20 text-primary border-primary/30 text-[11px] font-bold">
-                    {currentQuestion.step ? `Step ${currentQuestion.step}` : "AI 탐색"}
+                    {currentQuestion.step ? `Step ${currentQuestion.step}` : "AI 제원 탐색"}
                   </Badge>
                   <span className="text-xs text-muted-foreground font-semibold">1단계씩 세부 좁혀가기</span>
                 </div>
@@ -753,7 +732,7 @@ export default function AddDevicePage() {
                 </div>
               )}
 
-              {/* 1. 객관식 선택지 그리드 */}
+              {/* 객관식 추천 선택지 */}
               <div className="space-y-2">
                 <span className="text-[11px] font-bold text-muted-foreground block px-1">객관식 추천 선택지</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -773,7 +752,7 @@ export default function AddDevicePage() {
                 </div>
               </div>
 
-              {/* 2. 상시 직접 타이핑 가능한 입력 칸 */}
+              {/* 직접 타이핑 입력 폼 */}
               <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
@@ -784,7 +763,7 @@ export default function AddDevicePage() {
                 <form onSubmit={handleCustomSubmit} className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="예: 삼성전자, 갤럭시북4 프로, 16인치..."
+                    placeholder="예: 클로버 B19, 삼성 무풍클래식, 16인치..."
                     value={customInputText}
                     onChange={(e) => setCustomInputText(e.target.value)}
                     className="flex-1 h-11 px-3.5 rounded-xl bg-background border border-border text-foreground text-xs font-bold focus:border-primary outline-none"
@@ -799,7 +778,6 @@ export default function AddDevicePage() {
                 </form>
               </div>
 
-              {/* 하단 다시 스캔 / 수동 폼 버튼 */}
               <div className="pt-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
                 <button
                   onClick={() => {
@@ -824,14 +802,13 @@ export default function AddDevicePage() {
           </div>
         )}
 
-        {/* ── STEP 3: 정돈된 AI 판독 결과 & 제원 대조 (최종 확인) ── */}
+        {/* ── STEP 3: 제원 확인 및 제원표 기반 전력 추론 결과 (최종 확인) ── */}
         {step === "final_confirm" && analyzedDevice && (
           <div className="space-y-5">
-            {/* 상단 타이틀 & 모드 전환 */}
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[11px] font-semibold">
-                  AI 비전 & 스펙 매핑 완료
+                  에너지 소비 제원 역산 및 등급 매핑 완료
                 </Badge>
                 <h2 className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight">
                   제원 확인 및 에너지 진단
@@ -849,10 +826,9 @@ export default function AddDevicePage() {
               </Button>
             </div>
 
-            {/* 메인 비주얼 카드: 원본 라벨(좌) + AI 제원 요약(우) 콤팩트 2단 배치 */}
+            {/* 메인 비주얼 카드 */}
             <div className="rounded-3xl bg-card border border-border overflow-hidden shadow-xs">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-0">
-                {/* 좌측: 원본 라벨/사진 이미지 */}
                 {capturedImage && (
                   <div className="md:col-span-5 bg-muted/40 p-4 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-border">
                     <span className="text-[11px] font-bold text-muted-foreground self-start mb-2 flex items-center gap-1.5">
@@ -869,9 +845,8 @@ export default function AddDevicePage() {
                   </div>
                 )}
 
-                {/* 우측: 핵심 스펙 요약 / 수정 폼 */}
                 <div className={`${capturedImage ? "md:col-span-7" : "col-span-12"} p-5 sm:p-6 flex flex-col justify-between space-y-4`}>
-                  {/* 기기 기본 정보 헤더 */}
+                  {/* 기본 헤더 & 2026 개정 등급 배지 */}
                   <div className="border-b border-border/70 pb-3 flex items-start justify-between">
                     <div>
                       <span className="text-xs font-bold text-primary tracking-wider uppercase">
@@ -885,9 +860,17 @@ export default function AddDevicePage() {
                       </p>
                     </div>
 
-                    <Badge className="bg-emerald-500 text-white font-extrabold text-xs px-2.5 py-0.5 shadow-xs">
-                      {analyzedDevice.energyGrade ? `에너지 ${analyzedDevice.energyGrade}등급` : "표준 등급"}
-                    </Badge>
+                    <div className="text-right space-y-1">
+                      <Badge className="bg-emerald-500 text-white font-extrabold text-xs px-2.5 py-0.5 shadow-xs">
+                        {analyzedDevice.energyGrade ? `현행 ${analyzedDevice.energyGrade}등급` : "표준 등급"}
+                      </Badge>
+                      {analyzedDevice.isGradeDowngraded && (
+                        <span className="text-[10px] text-amber-500 font-bold flex items-center gap-0.5 justify-end">
+                          <TrendingDown className="w-3 h-3" />
+                          출시 {analyzedDevice.releaseEnergyGrade}등급 대비 하향
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* 세부 데이터 그리드 */}
@@ -896,7 +879,7 @@ export default function AddDevicePage() {
                       <div className="p-3 rounded-2xl bg-muted/50 border border-border/50">
                         <span className="text-muted-foreground text-[11px] block">정격 소비전력</span>
                         <strong className="text-foreground text-sm font-bold mt-0.5 block">
-                          {analyzedDevice.power || "공칭 표준"}
+                          {analyzedDevice.power || analyzedDevice.specs?.powerConsumption || "공칭 표준"}
                         </strong>
                       </div>
 
@@ -909,22 +892,34 @@ export default function AddDevicePage() {
 
                       <div className="col-span-2 p-3.5 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-between">
                         <span className="text-xs font-medium text-muted-foreground">
-                          한전 기준 월 예상 청구액
+                          한전 누진 요율 기반 월 예상 청구액
                         </span>
                         <strong className="text-base font-extrabold text-primary font-mono">
                           ₩ {Number(analyzedDevice.monthlyCost || 0).toLocaleString()}원
                         </strong>
                       </div>
 
-                      {analyzedDevice.specs && (
-                        <div className="col-span-2 p-3 rounded-2xl bg-muted/30 border border-border/40 space-y-1">
-                          <span className="text-[10px] font-bold text-muted-foreground block">매핑된 주요 사양</span>
-                          {Object.entries(analyzedDevice.specs).slice(0, 3).map(([k, v]) => (
-                            <div key={k} className="flex justify-between text-[11px]">
-                              <span className="text-muted-foreground capitalize">{k}:</span>
-                              <span className="font-semibold text-foreground truncate ml-2">{v}</span>
-                            </div>
-                          ))}
+                      {/* ★ 제원표 기반 추론 근거 카드 ★ */}
+                      {analyzedDevice.powerInference && (
+                        <div className="col-span-2 p-3 rounded-2xl bg-blue-500/10 border border-blue-500/25 space-y-1.5">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-blue-500">
+                            <span className="flex items-center gap-1">
+                              <Activity className="w-3.5 h-3.5" />
+                              제원표 기반 실사용 추론 데이터
+                            </span>
+                            <span>실시간 가동: ~{analyzedDevice.powerInference.currentPower}W</span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground leading-relaxed">
+                            {analyzedDevice.powerInference.formulaReason}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* 2026 고시 기준 안내 문구 */}
+                      {analyzedDevice.energyGradeDesc && (
+                        <div className="col-span-2 p-2.5 rounded-xl bg-muted/30 border border-border/40 text-[11px] text-muted-foreground flex items-center gap-1.5">
+                          <Zap className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span>{analyzedDevice.energyGradeDesc}</span>
                         </div>
                       )}
                     </div>
@@ -977,7 +972,7 @@ export default function AddDevicePage() {
                     </div>
                   )}
 
-                  {/* A/S 센터 안내 */}
+                  {/* A/S 안내 */}
                   <div className="pt-2 text-[11px] text-muted-foreground flex items-center justify-between border-t border-border/60">
                     <span className="flex items-center gap-1">
                       <Wrench className="w-3.5 h-3.5 text-primary" />

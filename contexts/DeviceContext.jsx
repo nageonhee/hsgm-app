@@ -11,6 +11,37 @@ import {
   getDefaultYear,
 } from "@/lib/energyGrade";
 
+// 기기 데이터에서 실제 정격 소비전력(W 단위 정수)을 안전하게 추출하는 유틸
+function parseWatt(device) {
+  if (!device) return 100;
+  const rawPower = device.power || device.specs?.powerConsumption || "";
+  
+  if (typeof rawPower === "number" && rawPower > 0) return rawPower;
+
+  const wattMatch = String(rawPower).match(/(\d+)\s*W/i);
+  if (wattMatch && wattMatch[1]) {
+    return parseInt(wattMatch[1], 10);
+  }
+
+  const fallbackNum = parseInt(String(rawPower).replace(/[^0-9]/g, ""), 10);
+  if (!isNaN(fallbackNum) && fallbackNum > 0 && fallbackNum < 10000) {
+    return fallbackNum;
+  }
+
+  const defaultWatts = {
+    air_conditioner: 1450,
+    refrigerator: 130,
+    washer: 450,
+    dryer: 800,
+    tv: 140,
+    cooker: 1090,
+    air_purifier: 65,
+    robot_cleaner: 65,
+  };
+
+  return defaultWatts[device.category] || 100;
+}
+
 // 심사위원 무마찰 체험 및 데모 계정 전용 프리셋 데이터 (총 7종)
 export const DEFAULT_PRESET_DEVICES = [
   {
@@ -258,18 +289,16 @@ export const DEFAULT_PRESET_DEVICES = [
   },
 ];
 
-// IoT 지원 기기 최우선 + 그 안에서 등록 순서(createdAt) 정렬 함수
+// IoT 지원 기기 최우선 + 등록 순서(createdAt) 정렬 함수
 export const sortDevices = (list) => {
   if (!Array.isArray(list)) return [];
   return [...list].sort((a, b) => {
     const aIsIoT = (a.isSmartControl !== false) && a.category !== "refrigerator" && !a.isProtectedGuardrail;
     const bIsIoT = (b.isSmartControl !== false) && b.category !== "refrigerator" && !b.isProtectedGuardrail;
     
-    // 1순위: IoT 지원 모델 최상단 우선
     if (aIsIoT && !bIsIoT) return -1;
     if (!aIsIoT && bIsIoT) return 1;
 
-    // 2순위: 등록 순서 (createdAt 기준)
     const aTime = a.createdAt || (a.created_at ? new Date(a.created_at).getTime() : 0);
     const bTime = b.createdAt || (b.created_at ? new Date(b.created_at).getTime() : 0);
     if (aTime && bTime && aTime !== bTime) {
@@ -284,7 +313,6 @@ const DeviceContext = createContext(null);
 export function DeviceProvider({ children }) {
   const { user, isDemoUser } = useAuth();
   
-  // 0. 계정별 공간(Space) 목록 및 현재 선택된 공간 관리
   const defaultSpaceName = user?.user_metadata?.name || "우리집";
   const [spaces, setSpaces] = useState([defaultSpaceName]);
   const [currentSpace, setCurrentSpaceState] = useState(defaultSpaceName);
@@ -293,7 +321,6 @@ export function DeviceProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [currentYear, setCurrentYear] = useState(getDefaultYear());
 
-  // 서버 시간 및 기준 연도 동기화 (연도 변경 시 자동 감지)
   useEffect(() => {
     fetchServerYear().then((year) => {
       if (year && typeof year === "number") {
@@ -302,7 +329,6 @@ export function DeviceProvider({ children }) {
     });
   }, []);
 
-  // 계정별 공간 목록 로드 및 초기화
   useEffect(() => {
     if (!user) {
       setSpaces(["우리집"]);
@@ -331,12 +357,10 @@ export function DeviceProvider({ children }) {
     setCurrentSpaceState(initial[0]);
   }, [user]);
 
-  // 공간 전환 함수
   const setCurrentSpace = useCallback((spaceName) => {
     setCurrentSpaceState(spaceName);
   }, []);
 
-  // 새 공간 추가 함수 (추가 시 해당 공간으로 자동 전환 및 독립 기기 DB 생성)
   const addSpace = useCallback((newSpaceName) => {
     if (!newSpaceName || !newSpaceName.trim()) return false;
     const trimmed = newSpaceName.trim();
@@ -357,14 +381,12 @@ export function DeviceProvider({ children }) {
     return true;
   }, [user]);
 
-  // 계정 및 공간별 고유 스토리지 키 생성
   const getUserSpaceStorageKey = useCallback((uid, space = currentSpace) => {
     const userPart = uid || "guest";
     const spacePart = encodeURIComponent(space || "우리집");
     return `hsgm_devices_${userPart}_${spacePart}`;
   }, [currentSpace]);
 
-  // 로컬 스토리지 헬퍼
   const saveLocalDevices = useCallback((updatedList, uid = user?.id, space = currentSpace) => {
     if (typeof window !== "undefined") {
       try {
@@ -376,7 +398,6 @@ export function DeviceProvider({ children }) {
     }
   }, [getUserSpaceStorageKey, user?.id, currentSpace]);
 
-  // 등급표 개정 시기(연도/고시버전) 변경 시에만 1회 확인하여 서버/스토리지에 영구 저장
   useEffect(() => {
     setDevices((prev) => {
       if (!prev || prev.length === 0) return prev;
@@ -389,7 +410,6 @@ export function DeviceProvider({ children }) {
     });
   }, [currentYear, saveLocalDevices, user?.id, currentSpace]);
 
-  // 1. 유저 계정 및 공간별 가전 목록 로드
   const fetchDevices = useCallback(async () => {
     if (!user) {
       setDevices([]);
@@ -412,7 +432,6 @@ export function DeviceProvider({ children }) {
       }
     }
 
-    // 1-A: 유효한 계정+공간별 캐시가 존재하면 로드 (개정판 변경 시에만 1회 동기화)
     if (hasCache && Array.isArray(cached)) {
       const { list, hasChanges } = syncDevicesWithStandards(cached, currentYear);
       if (hasChanges) {
@@ -423,7 +442,6 @@ export function DeviceProvider({ children }) {
       return;
     }
 
-    // 1-B: 데모 계정(demo-user-101)의 기본 "우리집" 공간에만 데모 프리셋 7종 제공
     if (isDemoUser && (currentSpace === "우리집" || currentSpace === defaultSpaceName)) {
       const { list } = syncDevicesWithStandards(DEFAULT_PRESET_DEVICES, currentYear);
       const sortedPreset = sortDevices(list);
@@ -433,11 +451,9 @@ export function DeviceProvider({ children }) {
       return;
     }
 
-    // 1-C: 신규 생성된 공간 또는 실제 사용자 계정 -> Supabase DB에서 해당 user.id 기기 조회
     try {
       setLoading(true);
       const data = await deviceService.getDevices(user.id);
-      // DB 기기 중 현재 공간과 일치하는 기기 필터링 (기본 공간이거나 space 속성이 일치)
       const spaceDevices = Array.isArray(data)
         ? data.filter((d) => (d.space || d.specs?.space || defaultSpaceName) === currentSpace)
         : [];
@@ -450,7 +466,6 @@ export function DeviceProvider({ children }) {
         const sorted = sortDevices(list);
         setDevices(sorted);
       } else {
-        // 새 공간이거나 등록 기기가 없는 경우: 정확히 0개(빈 목록)로 시작
         setDevices([]);
         saveLocalDevices([], user.id, currentSpace);
       }
@@ -468,7 +483,6 @@ export function DeviceProvider({ children }) {
 
     if (!user || isDemoUser) return;
 
-    // 2. Supabase Realtime 웹소켓 실시간 구독
     const unsubscribe = deviceService.subscribeDevices((payload) => {
       const { eventType, new: newDevice, old: oldDevice } = payload;
       if (newDevice?.user_id && newDevice.user_id !== user.id) return;
@@ -497,7 +511,7 @@ export function DeviceProvider({ children }) {
     };
   }, [fetchDevices, user, isDemoUser, currentSpace, defaultSpaceName, saveLocalDevices]);
 
-  // 3. 전원 온/오프 토글 함수
+  // 전원 On/Off 제어
   const toggleDeviceStatus = async (id) => {
     const target = devices.find((d) => d.id === id);
     if (!target) return;
@@ -507,9 +521,7 @@ export function DeviceProvider({ children }) {
     }
 
     const nextStatus = !target.status;
-    const nextPower = nextStatus
-      ? parseInt(target.specs?.powerConsumption) || (target.category === "air_conditioner" ? 1450 : 80)
-      : 0;
+    const nextPower = nextStatus ? parseWatt(target) : 0;
 
     setDevices((prev) => {
       const next = prev.map((d) =>
@@ -526,7 +538,6 @@ export function DeviceProvider({ children }) {
     }
   };
 
-  // 4. 가전 세부 상태 수정 함수
   const updateDeviceState = async (id, statePatch) => {
     setDevices((prev) => {
       const next = prev.map((d) =>
@@ -543,7 +554,6 @@ export function DeviceProvider({ children }) {
     }
   };
 
-  // 5. 홈 화면 표시(핀 고정) 토글 함수
   const togglePinDevice = (id) => {
     setDevices((prev) => {
       const next = prev.map((d) => (d.id === id ? { ...d, isPinned: !d.isPinned } : d));
@@ -552,7 +562,7 @@ export function DeviceProvider({ children }) {
     });
   };
 
-  // 6. 가전 추가 (현재 선택된 공간에 귀속)
+  // 가전 추가
   const addDevice = async (deviceData, explicitUserId = user?.id) => {
     const targetUserId = explicitUserId || user?.id;
     const nowTime = Date.now();
@@ -601,7 +611,6 @@ export function DeviceProvider({ children }) {
     }
   };
 
-  // 7. 가전 삭제
   const deleteDevice = async (id) => {
     setDevices((prev) => {
       const next = prev.filter((d) => d.id !== id);
@@ -615,7 +624,6 @@ export function DeviceProvider({ children }) {
     }
   };
 
-  // 8. 시연 기본 프리셋 데이터 원상 복구 (데모 모드 또는 명시적 복원 시)
   const restoreDefaultDevices = () => {
     const { list } = syncDevicesWithStandards(DEFAULT_PRESET_DEVICES, currentYear);
     const sortedPreset = sortDevices(list);

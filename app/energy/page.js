@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { useDevices } from "@/contexts/DeviceContext";
 import { energyService } from "@/services/energyService";
+import { calculateDetailedBill } from "@/lib/energyCalculator";
 import {
   Zap,
   PieChart as PieIcon,
@@ -15,10 +16,16 @@ import {
   Refrigerator,
   Tv,
   WashingMachine,
+  Wind,
+  Disc,
+  Droplets,
   RotateCcw,
   Flame,
   Check,
   Calendar,
+  Activity,
+  ShieldAlert,
+  TrendingUp,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -39,10 +46,23 @@ const ICON_MAP = {
   Refrigerator: Refrigerator,
   Tv: Tv,
   WashingMachine: WashingMachine,
+  Wind: Wind,
+  Disc: Disc,
+  Droplets: Droplets,
   Zap: Zap,
 };
 
-const PIE_COLORS = ["#0070F3", "#38BDF8", "#34D399", "#FBBF24", "#A78BFA", "#64748B"];
+const PIE_COLORS = [
+  "#0070F3",
+  "#38BDF8",
+  "#34D399",
+  "#FBBF24",
+  "#A78BFA",
+  "#F43F5E",
+  "#FB923C",
+  "#2DD4BF",
+  "#64748B",
+];
 
 export default function EnergyPage() {
   const { devices = [] } = useDevices();
@@ -71,7 +91,7 @@ export default function EnergyPage() {
     loadLogs();
   }, []);
 
-  // 2. 실제 DB 가전 데이터를 기준으로 요금 랭킹 및 점유율 계산 (monthlyUsageKWh, monthlyUsage, monthly_usage_kwh 모두 호환)
+  // 2. 실제 DB 가전 데이터를 기준으로 요금 랭킹 및 점유율 계산
   const ranking = useMemo(() => {
     if (!devices || devices.length === 0) return [];
 
@@ -91,6 +111,7 @@ export default function EnergyPage() {
     return sorted.map((d, index) => {
       const usageKWh = Number(d.monthlyUsageKWh ?? d.monthlyUsage ?? d.monthly_usage_kwh ?? 0);
       const monthlyCost = Number(d.monthlyCost ?? d.monthly_cost ?? 0);
+      const currentPower = Number(d.currentPower ?? d.current_power ?? 0);
       const percent = totalUsage > 0 ? Math.round((usageKWh / totalUsage) * 100) : 0;
 
       return {
@@ -100,9 +121,11 @@ export default function EnergyPage() {
         brand: d.brand || "기타",
         category: d.category,
         icon: d.icon || "Zap",
+        currentPower,
         usageKWh,
         monthlyCost,
         percent,
+        specs: d.specs || {},
       };
     });
   }, [devices]);
@@ -118,58 +141,72 @@ export default function EnergyPage() {
     }));
   }, [ranking]);
 
-  // 4. 선택된 가전 정보
+  // 4. 한전 누진세 계산 상세 (가구 전체 합산)
+  const totalMonthlyKWh = useMemo(() => {
+    return ranking.reduce((acc, d) => acc + d.usageKWh, 0);
+  }, [ranking]);
+
+  const billDetails = useMemo(() => {
+    return calculateDetailedBill(totalMonthlyKWh);
+  }, [totalMonthlyKWh]);
+
+  // 5. 선택된 가전 정보
   const selectedDeviceObj = ranking.find((d) => d.deviceId === selectedDeviceForTrend);
 
-  // 5. DB 로그 및 선택된 기간(일별/월별/연도별) 기준 전력 추이 매핑
+  // 6. 가전별 실사용 가동 프로파일(제원표 추론)을 반영한 추이 데이터 산출
   const displayTrendData = useMemo(() => {
-    const multiplier = selectedDeviceObj ? Math.max(0.1, selectedDeviceObj.percent / 100) : 1;
-    const baseKW = selectedDeviceObj
-      ? Number(Math.max(0.2, selectedDeviceObj.usageKWh / 120).toFixed(2))
-      : 2.41;
+    const isSingle = Boolean(selectedDeviceObj);
+    const cat = selectedDeviceObj?.category || "";
+    const baseKW = isSingle
+      ? Number(Math.max(0.05, (selectedDeviceObj.currentPower || 150) / 1000).toFixed(2))
+      : Number(Math.max(0.5, totalMonthlyKWh / 150).toFixed(2));
 
     if (timeRange === "daily") {
-      // 일별 (24시간 추이)
-      if (!selectedDeviceForTrend && hourlyLogs.length > 0) {
+      // 24시간 가동 프로파일
+      if (!isSingle && hourlyLogs.length > 0) {
         return hourlyLogs.map((d) => ({ time: d.time, value: d.totalPowerKw }));
       }
-      return [
-        { time: "00시", value: Number((baseKW * 0.6 * multiplier).toFixed(2)) },
-        { time: "04시", value: Number((baseKW * 0.4 * multiplier).toFixed(2)) },
-        { time: "08시", value: Number((baseKW * 0.9 * multiplier).toFixed(2)) },
-        { time: "12시", value: Number((baseKW * 1.3 * multiplier).toFixed(2)) },
-        { time: "16시", value: Number((baseKW * 1.5 * multiplier).toFixed(2)) },
-        { time: "20시", value: Number((baseKW * 1.8 * multiplier).toFixed(2)) },
-        { time: "24시", value: Number((baseKW * 0.8 * multiplier).toFixed(2)) },
-      ];
+
+      // 가전 특성별 24시간 곡선
+      let curve = [0.6, 0.4, 0.8, 1.2, 1.4, 1.8, 0.9]; // 기본
+      if (cat === "refrigerator" || cat === "water_dispenser") {
+        curve = [0.95, 0.90, 0.95, 1.05, 1.0, 1.1, 0.95]; // 상시 가동
+      } else if (cat === "air_conditioner") {
+        curve = [0.3, 0.1, 0.5, 1.6, 2.0, 1.9, 0.7]; // 낮/저녁 피크
+      } else if (cat === "tv" || cat === "cooker") {
+        curve = [0.05, 0.0, 0.4, 0.8, 0.9, 1.9, 0.4]; // 저녁 집중
+      }
+
+      const timeLabels = ["00시", "04시", "08시", "12시", "16시", "20시", "24시"];
+      return timeLabels.map((time, idx) => ({
+        time,
+        value: Number((baseKW * curve[idx]).toFixed(2)),
+      }));
     }
 
     if (timeRange === "monthly") {
-      // 월별 (30일 일별 추이)
-      return [
-        { time: "1일", value: Number((baseKW * 0.8 * multiplier).toFixed(2)) },
-        { time: "5일", value: Number((baseKW * 1.1 * multiplier).toFixed(2)) },
-        { time: "10일", value: Number((baseKW * 1.4 * multiplier).toFixed(2)) },
-        { time: "15일", value: Number((baseKW * 1.2 * multiplier).toFixed(2)) },
-        { time: "20일", value: Number((baseKW * 1.6 * multiplier).toFixed(2)) },
-        { time: "25일", value: Number((baseKW * 1.3 * multiplier).toFixed(2)) },
-        { time: "30일", value: Number((baseKW * 0.9 * multiplier).toFixed(2)) },
-      ];
+      // 월간 30일 추이
+      const days = ["1일", "5일", "10일", "15일", "20일", "25일", "30일"];
+      const factor = [0.9, 1.1, 1.2, 1.0, 1.3, 1.1, 0.95];
+      return days.map((time, idx) => ({
+        time,
+        value: Number((baseKW * factor[idx]).toFixed(2)),
+      }));
     }
 
-    // 연도별 (12개월 추이)
-    return [
-      { time: "1월", value: Number((baseKW * 1.4 * multiplier).toFixed(2)) },
-      { time: "3월", value: Number((baseKW * 0.9 * multiplier).toFixed(2)) },
-      { time: "5월", value: Number((baseKW * 0.8 * multiplier).toFixed(2)) },
-      { time: "7월", value: Number((baseKW * 2.2 * multiplier).toFixed(2)) },
-      { time: "8월", value: Number((baseKW * 2.5 * multiplier).toFixed(2)) },
-      { time: "10월", value: Number((baseKW * 1.0 * multiplier).toFixed(2)) },
-      { time: "12월", value: Number((baseKW * 1.6 * multiplier).toFixed(2)) },
-    ];
-  }, [timeRange, selectedDeviceForTrend, selectedDeviceObj, hourlyLogs]);
+    // 연도별 12개월 추이 (계절성 가중치 반영)
+    const months = ["1월", "3월", "5월", "7월", "8월", "10월", "12월"];
+    let seasonWeight = [1.2, 0.9, 0.8, 2.1, 2.4, 0.95, 1.3];
+    if (cat === "air_conditioner") seasonWeight = [0.1, 0.1, 0.3, 3.2, 3.8, 0.2, 0.1];
+    if (cat === "dehumidifier") seasonWeight = [0.1, 0.2, 0.5, 2.8, 3.0, 0.3, 0.1];
 
-  // 6. 실시간 소비전력 집계 (W -> kW)
+    return months.map((time, idx) => ({
+      time,
+      value: Number((baseKW * seasonWeight[idx]).toFixed(2)),
+    }));
+  }, [timeRange, selectedDeviceForTrend, selectedDeviceObj, hourlyLogs, totalMonthlyKWh]);
+
+  // 7. 실시간 소비전력 집계 (W -> kW)
   const realtimePowerKW = useMemo(() => {
     const activeWatts = devices
       .filter((d) => d.status)
@@ -187,24 +224,69 @@ export default function EnergyPage() {
   return (
     <AppShell>
       <div className="space-y-5 animate-in fade-in duration-300 pb-12">
-        {/* 상단 헤더 */}
-        <div className="flex items-center justify-between">
+        {/* 상단 헤더 & 한전 누진제 요약 바 */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
-              전력 모니터링
+              전력 모니터링 & 요금 진단
             </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              실시간 {realtimePowerKW} kW
+            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-emerald-500" />
+              실시간 전체 부하: <strong className="text-foreground font-mono">{realtimePowerKW} kW</strong>
             </p>
           </div>
 
-          <Link
-            href="/energy/forecast"
-            className="flex items-center gap-1 border border-border text-xs h-8 px-3 rounded-full bg-accent/50 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mr-1" />
-            <span>누진세 분석</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Badge
+              className={`text-xs px-2.5 py-1 font-bold ${
+                billDetails.currentTier === 3
+                  ? "bg-red-500/20 text-red-500 border-red-500/30"
+                  : billDetails.currentTier === 2
+                  ? "bg-amber-500/20 text-amber-500 border-amber-500/30"
+                  : "bg-emerald-500/20 text-emerald-500 border-emerald-500/30"
+              }`}
+            >
+              한전 누진 {billDetails.currentTier}단계
+            </Badge>
+
+            <Link
+              href="/energy/forecast"
+              className="flex items-center gap-1 border border-border text-xs h-8 px-3 rounded-full bg-accent/50 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors font-semibold"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mr-0.5" />
+              <span>누진세 시뮬레이터</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* 한전 요금 누진 구간 진척도 미니 배너 */}
+        <div className="p-3.5 rounded-2xl bg-card border border-border flex items-center justify-between flex-wrap gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            <span className="text-muted-foreground">
+              이달 누적 소비량: <strong className="text-foreground font-mono">{totalMonthlyKWh.toFixed(1)} kWh</strong>
+            </span>
+          </div>
+          <div className="text-muted-foreground">
+            {billDetails.currentTier < 3 ? (
+              <span>
+                다음 {billDetails.currentTier + 1}단계 누진선({billDetails.currentTier === 1 ? billDetails.tier1Limit : billDetails.tier2Limit}kWh)까지{" "}
+                <strong className="text-primary font-mono">
+                  {(
+                    (billDetails.currentTier === 1 ? billDetails.tier1Limit : billDetails.tier2Limit) -
+                    totalMonthlyKWh
+                  ).toFixed(1)}{" "}
+                  kWh
+                </strong>{" "}
+                여유
+              </span>
+            ) : (
+              <span className="text-red-500 font-bold flex items-center gap-1">
+                <ShieldAlert className="w-3.5 h-3.5" />
+                최고 누진 3단계 요율(307.3원/kWh) 적용 중
+              </span>
+            )}
+          </div>
         </div>
 
         {/* 메인 2컬럼 레이아웃 */}
@@ -237,7 +319,7 @@ export default function EnergyPage() {
                 </button>
               </div>
 
-              {/* 추이 그래프 시 기간 선택 드롭다운 (일별/월별/연도별) */}
+              {/* 추이 그래프 시 기간 선택 드롭다운 */}
               {chartMode === "trend" && (
                 <div className="flex items-center gap-2">
                   <select
@@ -310,7 +392,7 @@ export default function EnergyPage() {
                   )}
                 </div>
 
-                {/* 박스를 넘치지 않는 스크롤 범례 (기기가 많아도 안전) */}
+                {/* 범례 리스트 */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-1 max-h-28 overflow-y-auto no-scrollbar">
                   {pieData.map((entry, index) => (
                     <div
@@ -337,8 +419,8 @@ export default function EnergyPage() {
                     <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                     <span>
                       {selectedDeviceObj
-                        ? `${selectedDeviceObj.name} 추이`
-                        : "우리집 전체 전력 추이"}
+                        ? `${selectedDeviceObj.name} 추론 부하 곡선`
+                        : "가구 전체 가전 통합 전력 부하"}
                     </span>
                   </span>
                   <Badge className="bg-primary/20 text-primary text-[10px] py-0.5 px-2 border-primary/30 font-mono">
@@ -411,11 +493,11 @@ export default function EnergyPage() {
                 </h3>
               </div>
               <span className="text-xs text-muted-foreground font-mono">
-                원(₩) 기준 환산
+                한전 요율 공식 환산
               </span>
             </div>
 
-            <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1 no-scrollbar">
+            <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1 no-scrollbar">
               {ranking.map((item) => {
                 const Icon = ICON_MAP[item.icon] || Zap;
                 const isSelected =
@@ -455,7 +537,7 @@ export default function EnergyPage() {
                           )}
                         </div>
                         <span className="text-[11px] text-muted-foreground block">
-                          {item.brand} • {item.percent}% 점유
+                          {item.brand} • 실시간 ~{item.currentPower}W • {item.percent}% 점유
                         </span>
                       </div>
                     </div>
