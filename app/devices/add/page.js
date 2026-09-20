@@ -342,8 +342,9 @@ export default function AddDevicePage() {
 
                   setCurrentQuestion({
                     title: data.nextQuestion,
-                    description: `${brandName} ${catKo}을(를) 확인하였습니다. 외견으로는 알 수 없는 정보를 확인하기 위해 아래 질문에 답변해 주세요.`,
+                    description: data.reason || `${brandName} ${catKo}을(를) 확인하였습니다. 외견으로는 알 수 없는 정보를 확인하기 위해 아래 질문에 답변해 주세요.`,
                     options: options,
+                    candidates: data.candidates || [],
                   });
                   setAnalyzedDevice(data.temporaryDevice || data);
                   setShowCustomInput(false);
@@ -433,6 +434,14 @@ export default function AddDevicePage() {
       ...accumulatedAnswers,
       [questionKey]: optionText,
     };
+
+    // 실시간 후보군을 Dify 컨텍스트에 주입하여 다음 추론에 활용하도록 함
+    if (currentQuestion.candidates && currentQuestion.candidates.length > 0) {
+      const candidatesText = currentQuestion.candidates
+        .map(c => `[${c.probability}] ${c.model_name}`)
+        .join(", ");
+      newAnswers["[현재 압축된 유력 후보군]"] = candidatesText;
+    }
 
     const newHistory = [
       ...refineHistory,
@@ -718,6 +727,31 @@ export default function AddDevicePage() {
                   </p>
                 )}
               </div>
+
+              {/* 1.5. 후보 모델 리스트 (Dify 응답 기반) */}
+              {currentQuestion.candidates && currentQuestion.candidates.length > 0 && (
+                <div className="space-y-3 pb-2">
+                  <span className="text-[11px] font-bold text-muted-foreground block px-1">분석된 유력 후보 모델</span>
+                  <div className="flex flex-col gap-2">
+                    {currentQuestion.candidates.map((cand, idx) => (
+                      <div key={idx} className="p-3 bg-muted/30 border border-border rounded-xl space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-sm text-foreground">{cand.model_name}</span>
+                          <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">
+                            {cand.probability}
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          <strong className="text-foreground/80">차이점:</strong> {cand.differences}
+                        </p>
+                        <p className="text-[11px] text-primary/90 leading-relaxed font-semibold">
+                          <strong className="text-primary">확인 필요:</strong> {cand.what_to_check}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* 1. 객관식 선택지 그리드 */}
               <div className="space-y-2">
